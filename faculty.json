@@ -1,0 +1,25 @@
+{
+    "label": "Chat Faculty",
+    "name": "chat",
+    "init": "./exec.mjs",
+    "meta": {
+        "modernuser": {
+            "permissions": [
+                {
+                    "name": "permissions.telep.chat.supervise",
+                    "label": "Manage chats of others",
+                    "inherits": [
+                        "permissions.modernuser.profiles.search"
+                    ]
+                }
+            ]
+        }
+    },
+    "http": {
+        "staticPaths": {
+            "${fPath}/static/": "./public/",
+            "${fPath}/messaging/static/": "./messaging/public/",
+            "${fPath}/calling/static/": "./calling/public/"
+        }
+    }
+}

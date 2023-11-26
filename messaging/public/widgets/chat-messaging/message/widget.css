@@ -1,0 +1,93 @@
+/* 
+    Copyright 2023 HolyCorn Software
+    The Tele-Epilepsy Project
+    This stylesheet determines the looks of a single message
+*/
+
+.hc-telep-chat-message {
+    width: 100%;
+    overflow: unset;
+}
+
+.hc-telep-chat-message>.container {
+    display: flex;
+    flex-direction: column;
+}
+
+.hc-telep-chat-message>.container>.main {
+    display: flex;
+    position: relative;
+    width: 100%;
+
+}
+
+
+.hc-telep-chat-message.rtl>.container>.main,
+.hc-telep-chat-message>.container>.main>.content>.bottom {
+    justify-content: flex-end;
+}
+
+
+.hc-telep-chat-message>.container>.main>.content {
+    background-color: var(--theme-blue-color);
+    color: rgb(255, 255, 255);
+    max-width: 80%;
+    min-width: 40%;
+    padding: 0.75em;
+    border-radius: 1.25em;
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+}
+
+.hc-telep-chat-message.rtl>.container>.main>.content {
+    border-top-right-radius: 0px;
+}
+
+.hc-telep-chat-message:not(.rtl)>.container>.main>.content {
+    border-top-left-radius: 0px;
+}
+
+
+.hc-telep-chat-message>.container>.main>.content>.bottom {
+    display: flex;
+    font-size: 0.85em;
+    gap: 1em;
+    align-items: center;
+}
+
+.hc-telep-chat-message>.container>.main>.content>.bottom>.actions>*>.hc-action-button>.container {
+    min-width: 4.5em;
+    border-radius: 0.75em;
+    color: white;
+    background-color: #3ea7bc;
+}
+
+.hc-telep-chat-message>.container>.main>.content>.bottom>.icons {
+    --real-font-size: 1.5em;
+}
+
+
+.hc-telep-chat-message>.container>.main>.content>.bottom>.icons>.failed {
+    color: #e8345b;
+}
+
+.hc-telep-chat-message>.container>.main>.content>.bottom>.icons>.failed,
+.hc-telep-chat-message>.container>.main>.content>.bottom>.actions>.resend {
+    opacity: 0;
+    font-size: 0em;
+    transition: 0s 0s;
+}
+
+
+.hc-telep-chat-message.hc-widget-ready>.container>.main>.content>.bottom>.icons>.failed,
+.hc-telep-chat-message.hc-widget-ready>.container>.main>.content>.bottom>.actions>.resend {
+    transition: 0.5s 0.125s;
+}
+
+
+.hc-telep-chat-message.failed>.container>.main>.content>.bottom>.icons>.failed,
+.hc-telep-chat-message.failed>.container>.main>.content>.bottom>.actions>.resend {
+    opacity: 1;
+    font-size: var(--real-font-size, 1em);
+}

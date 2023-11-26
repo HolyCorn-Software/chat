@@ -1,0 +1,106 @@
+/* 
+    Copyright 2023 HolyCorn Software
+    The Tele-Epilepsy Project
+    The Chat Faculty
+    This stylesheet targets the chat-messaging/compose widget, which allows a user
+    to compose messages
+ */
+
+.hc-telep-chat-messaging-compose>.container {
+    display: flex;
+    flex-direction: column;
+
+}
+
+.hc-telep-chat-messaging-compose>.container>.main {
+    display: flex;
+    align-items: center;
+    gap: 1em;
+    position: relative;
+    color: var(--theme-brown-blue);
+}
+
+
+.hc-telep-chat-messaging-compose>.container>.main>.text-box {
+    flex-grow: 0.9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    width: 100%;
+    font-size: 1.2em;
+    padding: 0.5em;
+    padding-right: 1.75em;
+
+
+
+    border-radius: 0.85em;
+    padding: 0.35em;
+    border: 1px solid currentColor;
+    font-family: mitiga;
+    font-weight: 600;
+    width: 100%;
+}
+
+.hc-telep-chat-messaging-compose>.container>.main>.text-box>* {
+    max-height: min(4.5em, 12vh);
+    overflow-y: auto;
+    min-height: 3em;
+    overflow-wrap: anywhere;
+    outline: none;
+    width: 100%;
+    padding-right: 1.75em;
+    padding-left: 1.75em;
+}
+
+.hc-telep-chat-messaging-compose>.container>.main>.text-box>*::-webkit-scrollbar {
+    transform: translateX(-2em);
+}
+
+
+.hc-telep-chat-messaging-compose>.container>.main>.text-box>*>.holycorn-node {
+    color: rgb(12, 162, 221);
+    display: inline-flex;
+}
+
+.hc-telep-chat-messaging-compose>.container>.main>.send-action {
+    position: absolute;
+    left: calc(100% - 3em);
+    padding: 1.5em;
+}
+
+.hc-telep-chat-messaging-compose>.container>.main>:is(.additional-trigger, .send-action) {
+    display: flex;
+    align-items: center;
+    font-size: 1.5em;
+    align-self: flex-end;
+    padding-bottom: 1em;
+    padding-top: 1em;
+    color: var(--theme-purple-color);
+}
+
+
+
+.hc-telep-chat-messaging-compose>.container>.main>.additional-trigger {
+    position: absolute;
+    left: 0.25em;
+    z-index: 1;
+    align-self: flex-start;
+}
+
+.hc-telep-chat-messaging-compose.hc-widget-ready>.container>.additional-ui {
+    opacity: 0;
+    font-size: 0em;
+    transition: 0s 0s;
+}
+
+
+.hc-telep-chat-messaging-compose.hc-widget-ready>.container>.additional-ui {
+
+    transition: 0.5s 0.125s, 0.5s 0.25s opacity;
+}
+
+.hc-telep-chat-messaging-compose.show-trigger-ui>.container>.additional-ui {
+    font-size: 1em;
+    opacity: 1;
+}

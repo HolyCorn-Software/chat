@@ -1,0 +1,15 @@
+{
+    "compilerOpions": {
+        "paths": {
+            "/$/chat/static/*": [
+                "faculty/chat/public/*"
+            ],
+            "/$/chat/messaging/static/*": [
+                "faculty/chat/messaging/public/*"
+            ],
+            "/$/chat/chat/static/*": [
+                "faculty/chat/chat/calling/*"
+            ]
+        }
+    }
+}

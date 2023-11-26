@@ -1,0 +1,33 @@
+/* 
+    Copyright 2023 HolyCorn Software
+    The Tele-Epilepsy Project
+    The Chat Faculty
+    This stylesheet is acting on the chat-messaging widget, which allows a user to send 
+    messages withing a chat
+ */
+
+.hc-telep-chat-messaging {
+    height: 100%;
+}
+
+.hc-telep-chat-messaging>.container {
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+    height: 100%;
+}
+
+.hc-telep-chat-messaging>.container>.messages {
+    flex-grow: 1;
+    max-height: calc(var(--messaging-height) - var(--compose-height) - 2em);
+    /* min-height: calc(var(--messaging-height) - var(--compose-height) - 2em); */
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    row-gap: 1.5em;
+    transition: 0s 0s;
+}
+
+.hc-telep-chat-messaging.hc-widget-ready>.container>.messages {
+    transition: 0.25s 0.125s;
+}

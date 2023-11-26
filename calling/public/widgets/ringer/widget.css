@@ -1,0 +1,46 @@
+/*  
+    Copyright 2023 HolyCorn Software
+    The Tele-Epilepsy Project
+    The Chat Faculty
+    This stylesheet is responsible for the call ringer UI
+    
+*/
+
+.hc-telep-chat-call-ringer-ui>.container>.main {
+    --color1: var(--theme-purple-color);
+}
+
+.hc-telep-chat-call-ringer-content>.container {
+    display: flex;
+    flex-direction: column;
+}
+
+.hc-telep-chat-call-ringer-content>.container>.main {
+    display: flex;
+    gap: 3em;
+    align-items: center;
+}
+
+.hc-telep-chat-call-ringer-content>.container>.main>.button>* {
+    width: 2em;
+    height: 2em;
+    object-fit: contain;
+    object-position: center;
+    background-color: white;
+    border-radius: 100%;
+    color: var(--theme-blue-color, rgb(78, 23, 207));
+    padding: 0.25em;
+}
+
+.hc-telep-chat-call-ringer-content>.container>.main>.call-details {
+    display: flex;
+    flex-direction: column;
+    font-family: bariolBold;
+}
+
+.hc-telep-chat-call-ringer-content>.container>.main>.call-details>.call-type-label {
+    font-size: 0.85em;
+    font-family: k2d;
+    display: flex;
+    gap: 0.25em;
+}

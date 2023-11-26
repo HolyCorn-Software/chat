@@ -1,0 +1,73 @@
+/* 
+    Copyright 2023 HolyCorn Software
+    The Tele-Epilepsy Project
+    The Chat Faculty
+    This stylesheet is meant for the chat widget, which allows a user to interact
+    with a chat
+ */
+
+.hc-telep-chat-widget>.container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125em;
+    height: 100%;
+    height: calc(var(--hc-telep-mobile-device-frame-content-height, 100vh - 2em) - 4.5em);
+    color: var(--theme-blue-color);
+}
+
+.hc-telep-chat-widget>.container>.messaging-ui {
+    flex-grow: 1;
+    position: relative;
+    padding-top: 0.5em;
+}
+
+.hc-telep-chat-widget>.container>.action-bar {
+    display: flex;
+    flex-direction: column;
+    font-size: 1.5em;
+    font-family: mitiga;
+    border-bottom: 1px solid var(--theme-blue-color);
+    padding: 0.5em;
+    z-index: 2;
+    position: relative;
+}
+
+.hc-telep-chat-widget>.container>.action-bar>.main {
+    display: flex;
+    column-gap: 1em;
+    align-items: center;
+
+}
+
+.hc-telep-chat-widget>.container>.action-bar>.main>.left {
+    display: flex;
+}
+
+.hc-telep-chat-widget>.container>.action-bar>.main>.left>.profile-image {
+    height: 2em;
+    aspect-ratio: 1/1;
+    background-image: var(--chat-icon, url('/$/shared/static/logo.png'));
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border: 1px solid currentColor;
+    border-radius: 100%;
+}
+
+.hc-telep-chat-widget>.container>.action-bar>.main>.middle {
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+}
+
+.hc-telep-chat-widget>.container>.action-bar>.main>.right {
+    flex-grow: 1;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.hc-telep-chat-widget>.container>.action-bar>.main>.right>.actions {
+    display: flex;
+    gap: 1em;
+    color: var(--theme-blue-color);
+}

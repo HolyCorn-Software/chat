@@ -48,8 +48,7 @@ export default class MessagingController {
         )
         if (
             // If the chat is not active, let's prevent messaging
-            false && // TODO: Remove this test code
-            (chatData.ended || chatData.archived)
+            ((chatData.ended || chatData.archived || chatData.disabled) && false) // TODO: Remove this test code (false)
         ) {
             throw new Exception(`You can't send messages, because this chat is not (yet) active`)
         }

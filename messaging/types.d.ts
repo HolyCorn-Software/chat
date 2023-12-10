@@ -44,8 +44,8 @@ global {
                  * This field is set, if the message is an advanced (meta) message
                  */
                 meta: {
-                    /** This optional field may contain a link to the content of the message */
-                    url: string
+                    contentType: keyof AllMessageMetaTypes
+                    data: AllMessageMetaTypes
                 }
             }
             /** This field contains the time the message was created */
@@ -84,12 +84,18 @@ global {
 
         }
 
-        type MessageInit = Omit<Message, "edited" | "deleted" | "time" | "id" | "sender"|"reports"> & {
+        type MessageInit = Omit<Message, "edited" | "deleted" | "time" | "id" | "sender" | "reports"> & {
             userid: string
         }
 
         type Type = "text" | "media" | "meta"
         type Mime = "audio/*" | "video/*" | "image/*"
+        interface AllMessageMetaTypes {
+            'exampleType': {
+                payment: string
+            }
+        }
+
         interface ReportEntry {
             /** The userid of the recipient. */
             recipient: string

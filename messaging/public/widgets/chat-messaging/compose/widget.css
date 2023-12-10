@@ -28,29 +28,29 @@
     justify-content: center;
     position: relative;
     width: 100%;
-    font-size: 1.2em;
+    font-size: 1em;
     padding: 0.5em;
     padding-right: 1.75em;
 
 
 
     border-radius: 0.85em;
-    padding: 0.35em;
-    border: 1px solid currentColor;
-    font-family: mitiga;
-    font-weight: 600;
+    font-family: comfortaa;
+    font-weight: 400;
     width: 100%;
+
+    background-color: #b4fbf6;
 }
 
 .hc-telep-chat-messaging-compose>.container>.main>.text-box>* {
     max-height: min(4.5em, 12vh);
     overflow-y: auto;
-    min-height: 3em;
+    min-height: 2em;
     overflow-wrap: anywhere;
     outline: none;
     width: 100%;
+    padding-left: 2.5em;
     padding-right: 1.75em;
-    padding-left: 1.75em;
 }
 
 .hc-telep-chat-messaging-compose>.container>.main>.text-box>*::-webkit-scrollbar {
@@ -73,20 +73,45 @@
     display: flex;
     align-items: center;
     font-size: 1.5em;
-    align-self: flex-end;
+    align-self: flex-start;
     padding-bottom: 1em;
     padding-top: 1em;
-    color: var(--theme-purple-color);
+    top: -0.5em;
 }
 
 
 
 .hc-telep-chat-messaging-compose>.container>.main>.additional-trigger {
     position: absolute;
-    left: 0.25em;
+    left: 0.5em;
     z-index: 1;
     align-self: flex-start;
 }
+
+.hc-telep-chat-messaging-compose>.container>.additional-ui {
+    background-color: #e2f3f9;
+    padding: 1em;
+    border-radius: 0.85em;
+    transform: translateY(0.1em);
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    gap: 1.5em;
+    border-bottom-right-radius: 0px;
+    border-bottom-left-radius: 0px;
+}
+
+.hc-telep-chat-messaging-compose>.container>.additional-ui>.caption {
+    text-align: center;
+    font-weight: bolder;
+    border-bottom: 0.125em solid currentColor;
+}
+
+.hc-telep-chat-messaging-compose>.container>.additional-ui>.items {
+    display: flex;
+    gap: 1em;
+}
+
 
 .hc-telep-chat-messaging-compose.hc-widget-ready>.container>.additional-ui {
     opacity: 0;
@@ -103,4 +128,9 @@
 .hc-telep-chat-messaging-compose.show-trigger-ui>.container>.additional-ui {
     font-size: 1em;
     opacity: 1;
+}
+
+.hc-telep-chat-messaging-compose.show-trigger-ui>.container>.main>.text-box {
+    border-top-left-radius: 0px;
+    border-top-right-radius: 0px;
 }

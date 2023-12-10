@@ -9,6 +9,9 @@
             ],
             "/$/chat/chat/static/*": [
                 "faculty/chat/chat/calling/*"
+            ],
+            "/$/chat/calling/static/*": [
+                "faculty/chat/calling/public/*"
             ]
         }
     }

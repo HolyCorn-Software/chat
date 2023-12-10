@@ -18,4 +18,28 @@ global {
             isNew: boolean
         }
     }
+
+    namespace soul.http.frontendManager.runManager.ui.event_based_extender {
+        interface EventDataMap {
+            'telep-chat-messaging-extend': {
+                input: {
+                    chat: telep.chat.management.Chat
+                }
+                output: {
+                    html: HTMLElement
+                }
+                scope: 'telep-chat-messaging-extensions'
+            }
+
+            'telep-chat-messaging-create-custom-view': {
+                input: {
+                    message: telep.chat.messaging.Message
+                }
+                output: {
+                    html: HTMLElement
+                }
+                scope: 'telep-chat-messaging-extensions'
+            }
+        }
+    }
 }

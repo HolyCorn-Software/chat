@@ -132,6 +132,8 @@ export default class CallManager {
             console.error(`Could not ring call ${call.red} `, e)
 
         })
+
+        console.log(`The call `, call)
     }
 
     /**

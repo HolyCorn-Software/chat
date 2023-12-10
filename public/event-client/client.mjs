@@ -9,7 +9,6 @@
 import ChatClientRemoteMethods from "./remote/remote.mjs";
 import hcRpc from "/$/system/static/comm/rpc/aggregate-rpc.mjs";
 import EventChannelClient from "/$/system/static/comm/rpc/json-rpc/event-channel/client.mjs";
-import FunctionProxy from "/$/system/static/html-hc/lib/function-proxy/proxy.mjs";
 
 
 /** @type {ChatEventClient} */
@@ -27,7 +26,7 @@ export default class ChatEventClient extends EventChannelClient {
         let firstTime = true
 
         return instance = new this(hcRpc.chat.$jsonrpc, async () => {
-            hcRpc.chat.$jsonrpc.stub = new FunctionProxy.SkipArgOne(this.remote ||= new ChatClientRemoteMethods())
+            hcRpc.chat.$jsonrpc.stub = (this.remote ||= new ChatClientRemoteMethods())
 
             if (firstTime) {
                 return firstTime = false

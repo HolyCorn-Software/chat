@@ -8,9 +8,9 @@ import hcRpc from "/$/system/static/comm/rpc/aggregate-rpc.mjs";
 import { handle } from "/$/system/static/errors/error.mjs";
 import { Widget, hc } from "/$/system/static/html-hc/lib/widget/index.mjs";
 import ActionButton from "/$/system/static/html-hc/widgets/action-button/button.mjs";
+import EventBasedExtender from "/$/system/static/run/event-based-extender.mjs";
 /**
  *  This widget represents a single message within a chat 
- * @extends Widget<ChatMessage>
  */
 export default class ChatMessage extends Widget {
 
@@ -29,7 +29,7 @@ export default class ChatMessage extends Widget {
                 <div class='container'>
                     <div class='main'>
                         <div class='content'>
-                            <div class='content-main'>Bla bla bla</div>
+                            <div class='content-main'></div>
                             
 
                             <div class='bottom'>
@@ -91,11 +91,41 @@ export default class ChatMessage extends Widget {
         this.htmlProperty(undefined, 'isOwn', 'class', undefined, 'rtl')
         this.isOwn = message.isOwn
 
+        const extender = new EventBasedExtender(
+            {
+                autoRunScope: 'telep-chat-messaging-extensions',
+                eventName: 'telep-chat-messaging-create-custom-view',
+            }
+        )
+
         this.waitTillDOMAttached().then(() => {
             // Wait till the message is visible, and see if it is one that requires sending
             if (this.data.isNew) {
                 this.send().catch((e) => {
                     handle(e)
+                })
+            }
+
+            if (this.data.type == 'meta') {
+                // If this message is a meta message, let's fetch a provider, that can display it
+                // Let's find a provider in such a way, that the first one to respond wins
+                this.blockWithAction(async () => {
+                    /** @type {soul.http.frontendManager.runManager.ui.event_based_extender.EventDataMap['telep-chat-messaging-create-custom-view']['output']['html']} */
+                    let htmlResults;
+                    await extender.fetch({
+                        data: {
+                            message: this.data
+                        },
+                        callback: async (result) => {
+                            htmlResults ||= (await result).html
+                        },
+                        timeout: 1200
+                    });
+
+                    if (htmlResults) {
+                        this.html.$('.container >.main >.content >.content-main').appendChild(htmlResults)
+                    }
+
                 })
             }
         });
@@ -115,8 +145,8 @@ export default class ChatMessage extends Widget {
     }
     async send() {
         try {
-            await this.loadWhilePromise(
-                (async () => {
+            await this.blockWithAction(
+                async () => {
                     const id = await hcRpc.chat.messaging.sendMessage(
                         {
                             chat: this.data.chat,
@@ -126,7 +156,7 @@ export default class ChatMessage extends Widget {
                     )
                     this.data.id = id
                     delete this.data.isNew
-                })()
+                }
             )
         } catch (e) {
             // At this point, let's add a retry option

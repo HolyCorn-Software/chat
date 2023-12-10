@@ -49,7 +49,7 @@
     display: flex;
     justify-content: center;
     font-size: 1.5em;
-    color: var(--theme-purple-color);
+    color: var(--theme-purple-color, var(--accent-color, rgb(5, 5, 88)));
 }
 
 .hc-telep-chat-call-widget>.container>.bottom>.call-info {

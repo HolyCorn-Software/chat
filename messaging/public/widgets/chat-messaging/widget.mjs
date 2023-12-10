@@ -53,7 +53,7 @@ export default class ChatMessaging extends Widget {
                             {
                                 isOwn: true,
                                 isNew: true,
-                                chat: this.chat,
+                                chat: this.chat.id,
                                 ...compose.value,
                                 time: Date.now(),
                             }
@@ -67,7 +67,7 @@ export default class ChatMessaging extends Widget {
                 }
             }
         );
-        /** @type {ChatMessagingCompose} */ this.compose = new ChatMessagingCompose()
+        /** @type {ChatMessagingCompose} */ this.compose = new ChatMessagingCompose(chat)
 
         hc.watchToCSS(
             {
@@ -119,17 +119,20 @@ export default class ChatMessaging extends Widget {
 
         Object.assign(this, arguments[0])
 
-        /** @type {string} */ this.chat
+        /** @type {telep.chat.management.Chat} */ this.chat
 
 
         this.waitTillDOMAttached().then(() => this.load())
     }
     async load() {
-        this.loadWhilePromise(
-            this[load]({
-                chatID: this.chat
-            })
-        ).catch(e => handle(e))
+        await this.blockWithAction(
+            async () => {
+
+                await this[load]({
+                    chatID: this.chat.id
+                });
+            }
+        )
     }
 
     scrollToBottom = new DelayedAction(
@@ -207,10 +210,9 @@ export default class ChatMessaging extends Widget {
      */
     async startListening() {
 
-        if (this[lastChatID] === this.chat) {
+        if (this[lastChatID] === this.chat.id) {
             return
         }
-        console.log(`We've started listening!!`)
 
         const chatEventClient = await ChatEventClient.create()
 
@@ -220,7 +222,7 @@ export default class ChatMessaging extends Widget {
 
         await chatEventClient.init()
 
-        const eventName = `chat-${this[lastChatID] = this.chat}-message`;
+        const eventName = `chat-${this[lastChatID] = this.chat.id}-message`;
 
         if (this[onMessage]) {
             chatEventClient.events.removeEventListener(eventName, this[onMessage])
@@ -231,7 +233,7 @@ export default class ChatMessaging extends Widget {
                 () => {
                     const lastMessage = this.messages.at(-1)
                     // TODO: Place the error in the UI
-                    this[load]({ chatID: this.chat, lastMessage: lastMessage.id }).catch(e => handle(e))
+                    this[load]({ chatID: this.chat.id, lastMessage: lastMessage.id }).catch(e => handle(e))
                 },
                 1000
             )

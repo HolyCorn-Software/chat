@@ -29,8 +29,8 @@
 
 
 .hc-telep-chat-message>.container>.main>.content {
-    background-color: var(--theme-blue-color);
-    color: rgb(255, 255, 255);
+    background-color: var(--theme-blue-color, var(--accent-color, rgb(28, 97, 201)));
+    color: rgb(15, 14, 14);
     max-width: 80%;
     min-width: 40%;
     padding: 0.75em;
@@ -46,6 +46,7 @@
 
 .hc-telep-chat-message:not(.rtl)>.container>.main>.content {
     border-top-left-radius: 0px;
+    background-color: #c4e4ff;
 }
 
 

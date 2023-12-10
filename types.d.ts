@@ -38,4 +38,13 @@ global {
             }
         }
     }
+
+    namespace telep.chat {
+        interface ChatMetadata extends telep.chat.management.Chat {
+            caption: string
+            unreadCount: number
+            lastTime: number
+            lastDirection: 'incoming' | 'outgoing'
+        }
+    }
 }

@@ -9,6 +9,7 @@
 
 import DelayedAction from "/$/system/static/html-hc/lib/util/delayed-action/action.mjs";
 import { Widget, hc } from "/$/system/static/html-hc/lib/widget/index.mjs";
+import EventBasedExtender from "/$/system/static/run/event-based-extender.mjs";
 /**
  * This widget is part of the chat-messaging widget, and allows the user to compose a new message 
  * @extends Widget<ChatMessagingCompose>
@@ -16,7 +17,7 @@ import { Widget, hc } from "/$/system/static/html-hc/lib/widget/index.mjs";
 export default class ChatMessagingCompose extends Widget {
 
 
-    constructor() {
+    constructor(chat) {
 
         super();
 
@@ -24,6 +25,12 @@ export default class ChatMessagingCompose extends Widget {
             classes: ChatMessagingCompose.classList,
             innerHTML: `
                 <div class='container'>
+
+                    <div class='additional-ui'>
+                        <div class='caption'>Add Extra</div>
+                        <div class=items></div>
+                    </div>
+
                     <div class='main'>
                         <div class='additional-trigger'></div>
                         <div class='text-box'>
@@ -32,12 +39,18 @@ export default class ChatMessagingCompose extends Widget {
                         <div class='send-action'></div>
                     </div>
 
-                    <div class='additional-ui'>
-                        Add something else, like a video, image, audio
-                    </div>
                 </div>
             `
         });
+
+        this.extender = new EventBasedExtender(
+            {
+                autoRunScope: 'telep-chat-messaging-extensions',
+                eventName: 'telep-chat-messaging-extend',
+            }
+        );
+
+
 
         const sendImgSymbol = Symbol()
         this.defineImageProperty(
@@ -57,11 +70,38 @@ export default class ChatMessagingCompose extends Widget {
         /** @type {(event: "composed", cb: (event: CustomEvent)=> void )=> void} */ this.addEventListener
 
 
+        /** @type {HTMLElement[]} */ this.additionalItems
+        this.pluralWidgetProperty(
+            {
+                selector: '*',
+                parentSelector: '.container >.additional-ui >.items',
+                childType: 'html',
+                property: 'additionalItems',
+            }
+        )
 
         this.html.$('.container >.main >.additional-trigger').addEventListener('click',
-            () => {
+            async () => {
                 // When clicked, let's show the attachment UI
-                this.html.classList.toggle('show-trigger-ui')
+                this.html.classList.toggle('show-trigger-ui');
+
+                this.additionalItems = []
+
+                await this.extender.fetch(
+                    {
+                        data: this.chat,
+                        callback: (promise) => {
+                            const widget = new Widget();
+                            widget.html = hc.spawn()
+
+                            widget.loadWhilePromise(promise)
+                            promise.then((result) => {
+                                widget.html.appendChild(result.html)
+                            });
+                            this.additionalItems.push(widget.html)
+                        }
+                    }
+                );
 
             }
         );
@@ -147,6 +187,8 @@ export default class ChatMessagingCompose extends Widget {
 
         // new MutationObserver(onTextChange).observe(this.textboxContent, { childList: true, subtree: true })
         this.textBox.parentElement.addEventListener('input', onTextChange)
+
+        /** @type {telep.chat.management.Chat} This is passed by the higher component. */ this.chat = chat
 
     }
 

@@ -7,7 +7,6 @@
 import CallWidget from "/$/chat/calling/static/widgets/call/widget.mjs";
 import ChatMessaging from "/$/chat/messaging/static/widgets/chat-messaging/widget.mjs";
 import hcRpc from "/$/system/static/comm/rpc/aggregate-rpc.mjs";
-import { handle } from "/$/system/static/errors/error.mjs";
 import { Widget, hc } from "/$/system/static/html-hc/lib/widget/index.mjs";
 import BrandedBinaryPopup from "/$/system/static/html-hc/widgets/branded-binary-popup/widget.mjs";
 import PopupMenu from "/$/system/static/html-hc/widgets/popup-menu/popup.mjs";
@@ -21,7 +20,7 @@ export default class ChatWidget extends Widget {
 
     /**
      * 
-     * @param {string} chat 
+     * @param {telep.chat.ChatMetadata} chat 
      */
     constructor(chat) {
         super();
@@ -84,10 +83,9 @@ export default class ChatWidget extends Widget {
                                     positive: `Yes`,
                                     negative: `No`,
                                     execute: async () => {
-                                        console.log(`The chat id is `, chat)
                                         new PopupMenu(
                                             {
-                                                content: new CallWidget({ chat, type }).html
+                                                content: new CallWidget({ chat: this.chat.id, type }).html
                                             }
                                         ).show()
                                     }
@@ -115,21 +113,20 @@ export default class ChatWidget extends Widget {
 
         this.chat = chat
 
-        this.waitTillDOMAttached().then(() => {
-            // TODO: Create a retry strategy
-            this.load().catch(e => handle(e))
+        this.blockWithAction(async () => {
+            await this.load()
         })
 
     }
 
     async load() {
-        return await this.loadWhilePromise(
-            (async () => {
-                const data = await hcRpc.chat.management.getChatViewData({ id: this.chat })
-                this.html.$('.container >.action-bar >.main >.middle >.chat-label').innerHTML = data.label
-                this.html.style.setProperty('--chat-icon', `url("${data.icon}")`)
-            })()
-        )
+
+        if (!this.chat.label || !this.chat.icon) {
+            Object.assign(this.chat, await hcRpc.chat.management.getChatViewData({ id: this.chat.id }))
+        }
+        this.html.$('.container >.action-bar >.main >.middle >.chat-label').innerHTML = this.chat.label
+        this.html.style.setProperty('--chat-icon', `url("${this.chat.icon}")`)
+
 
     }
 

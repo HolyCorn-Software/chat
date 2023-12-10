@@ -18,4 +18,8 @@ export default class ChatManagementPublicMethods extends muser_common.UseridAuth
         super(controller)
     }
 
+    async createChat() {
+        throw new Exception(`Sorry, you can't create a chat, just like that.`)
+    }
+
 }

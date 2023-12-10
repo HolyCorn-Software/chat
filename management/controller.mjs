@@ -96,6 +96,24 @@ export default class ChatManagement {
     }
 
     /**
+     * This method either activates, or deactivates a chat
+     * @param {object} data 
+     * @param {string} data.chat
+     * @param {string} data.userid The id of the user performing this action
+     * @param {boolean} data.state Should the chat be active, or deactivated.
+     */
+    async toggleChatState(data) {
+        // Let's get information about the chat, in a way that authenticates the user
+        const active = (await this.getChatInfoSecure({ id: data.chat, userid: data.userid })).disabled ?? false
+        if (active == data.state ?? false) {
+            // No need to run a database query, if the chat is already in the desired state
+            return
+        }
+        // And now, let's activate, or deactivate the chat
+        await this[collection].updateOne({ id: data.chat }, { $set: { disabled: !!!data.state } })
+    }
+
+    /**
      * This method gets information about a chat, while making sure,
      * the user getting the information is allowed to do so
      * @param {object} data 
@@ -175,7 +193,7 @@ export default class ChatManagement {
                         if (req[key] === true) {
                             // Then the rule is not a compound rule
                             // It is a simple rule like {end: true}
-                            if (!await checkUserByRule(data.userid, rulelist[key], [chatData.created.userid], data.throwError)) {
+                            if (!await checkUserByRule(data.userid, rulelist[key], [chatData.created?.userid], data.throwError)) {
                                 return false
                             }
                         } else {

@@ -52,27 +52,6 @@ export default class ChatMessage extends Widget {
             `
         });
 
-        /** @type {ActionButton} */ this.btnResend
-        this.widgetProperty(
-            {
-                selector: ['', ...ActionButton.classList].join('.'),
-                parentSelector: '.container >.main >.content >.bottom >.actions >.resend',
-                property: 'btnResend',
-                childType: 'widget',
-            }
-        );
-
-        this.btnResend = new ActionButton(
-            {
-                content: 'Resend',
-                onclick: () => {
-                    // TODO: Implement resending
-                    this.send().then(() => this.failed = false).catch(e => handle(e))
-                },
-                hoverAnimate: false
-            }
-        )
-
 
         if (message?.type === 'text') {
             this.html.$('.container >.main >.content >.content-main').innerHTML = message.data.text
@@ -98,7 +77,7 @@ export default class ChatMessage extends Widget {
             }
         )
 
-        this.waitTillDOMAttached().then(() => {
+        this.blockWithAction(async () => {
             // Wait till the message is visible, and see if it is one that requires sending
             if (this.data.isNew) {
                 this.send().catch((e) => {
@@ -109,24 +88,22 @@ export default class ChatMessage extends Widget {
             if (this.data.type == 'meta') {
                 // If this message is a meta message, let's fetch a provider, that can display it
                 // Let's find a provider in such a way, that the first one to respond wins
-                this.blockWithAction(async () => {
-                    /** @type {soul.http.frontendManager.runManager.ui.event_based_extender.EventDataMap['telep-chat-messaging-create-custom-view']['output']['html']} */
-                    let htmlResults;
-                    await extender.fetch({
-                        data: {
-                            message: this.data
-                        },
-                        callback: async (result) => {
-                            htmlResults ||= (await result).html
-                        },
-                        timeout: 1200
-                    });
+                /** @type {soul.http.frontendManager.runManager.ui.event_based_extender.EventDataMap['telep-chat-messaging-create-custom-view']['output']['html']} */
+                let htmlResults;
+                await extender.fetch({
+                    data: {
+                        message: this.data
+                    },
+                    callback: async (result) => {
+                        htmlResults ||= (await result).html
+                    },
+                    timeout: 1200
+                });
 
-                    if (htmlResults) {
-                        this.html.$('.container >.main >.content >.content-main').appendChild(htmlResults)
-                    }
+                if (htmlResults) {
+                    this.html.$('.container >.main >.content >.content-main').appendChild(htmlResults)
+                }
 
-                })
             }
         });
 

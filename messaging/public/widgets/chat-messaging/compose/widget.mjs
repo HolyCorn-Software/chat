@@ -7,6 +7,7 @@
  */
 
 
+import ChatMessaging from "../widget.mjs";
 import DelayedAction from "/$/system/static/html-hc/lib/util/delayed-action/action.mjs";
 import { Widget, hc } from "/$/system/static/html-hc/lib/widget/index.mjs";
 import EventBasedExtender from "/$/system/static/run/event-based-extender.mjs";
@@ -17,7 +18,11 @@ import EventBasedExtender from "/$/system/static/run/event-based-extender.mjs";
 export default class ChatMessagingCompose extends Widget {
 
 
-    constructor(chat) {
+    /**
+     * 
+     * @param {ChatMessaging} parent 
+     */
+    constructor(parent) {
 
         super();
 
@@ -89,7 +94,9 @@ export default class ChatMessagingCompose extends Widget {
 
                 await this.extender.fetch(
                     {
-                        data: this.chat,
+                        data: {
+                            widget: parent
+                        },
                         callback: (promise) => {
                             const widget = new Widget();
                             widget.html = hc.spawn()
@@ -188,7 +195,6 @@ export default class ChatMessagingCompose extends Widget {
         // new MutationObserver(onTextChange).observe(this.textboxContent, { childList: true, subtree: true })
         this.textBox.parentElement.addEventListener('input', onTextChange)
 
-        /** @type {telep.chat.management.Chat} This is passed by the higher component. */ this.chat = chat
 
     }
 

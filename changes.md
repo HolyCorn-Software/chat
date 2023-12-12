@@ -1,7 +1,5 @@
 .
 
-Added ability for other components to enhance messaging, especially via custom messages.
+Improved UX.
 
-Improved call UI.
-
-Added certain functionality to be used by other backend, and frontend components, e.g fetching all chats of a user.
+Made it easier for other components to extend the messaging capabilities. 

@@ -67,7 +67,7 @@ export default class ChatMessaging extends Widget {
                 }
             }
         );
-        /** @type {ChatMessagingCompose} */ this.compose = new ChatMessagingCompose(chat)
+        /** @type {ChatMessagingCompose} */ this.compose = new ChatMessagingCompose(this)
 
         hc.watchToCSS(
             {

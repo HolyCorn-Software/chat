@@ -7,6 +7,7 @@
  */
 
 import { Collection } from "mongodb";
+import ChatMessaging from "./widget.mjs";
 
 
 
@@ -23,7 +24,7 @@ global {
         interface EventDataMap {
             'telep-chat-messaging-extend': {
                 input: {
-                    chat: telep.chat.management.Chat
+                    widget: ChatMessaging
                 }
                 output: {
                     html: HTMLElement

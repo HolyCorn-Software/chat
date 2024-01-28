@@ -4,17 +4,13 @@
  * This widget allows a user to interact with a chat
  */
 
-import CallWidget from "/$/chat/calling/static/widgets/call/widget.mjs";
+import CallPopup from "/$/chat/calling/static/widgets/call/popup.mjs";
 import ChatMessaging from "/$/chat/messaging/static/widgets/chat-messaging/widget.mjs";
 import hcRpc from "/$/system/static/comm/rpc/aggregate-rpc.mjs";
 import { Widget, hc } from "/$/system/static/html-hc/lib/widget/index.mjs";
 import BrandedBinaryPopup from "/$/system/static/html-hc/widgets/branded-binary-popup/widget.mjs";
-import PopupMenu from "/$/system/static/html-hc/widgets/popup-menu/popup.mjs";
 
 
-/**
- * @extends Widget<ChatWidget>
- */
 export default class ChatWidget extends Widget {
 
 
@@ -83,11 +79,7 @@ export default class ChatWidget extends Widget {
                                     positive: `Yes`,
                                     negative: `No`,
                                     execute: async () => {
-                                        new PopupMenu(
-                                            {
-                                                content: new CallWidget({ chat: this.chat.id, type }).html
-                                            }
-                                        ).show()
+                                        new CallPopup({ chat: this.chat, type }).show();
                                     }
                                 }
                             ).show()

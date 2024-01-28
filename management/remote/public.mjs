@@ -22,4 +22,8 @@ export default class ChatManagementPublicMethods extends muser_common.UseridAuth
         throw new Exception(`Sorry, you can't create a chat, just like that.`)
     }
 
+    get events() {
+        return undefined
+    }
+
 }

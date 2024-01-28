@@ -7,7 +7,6 @@
 import hcRpc from "/$/system/static/comm/rpc/aggregate-rpc.mjs";
 import { handle } from "/$/system/static/errors/error.mjs";
 import { Widget, hc } from "/$/system/static/html-hc/lib/widget/index.mjs";
-import ActionButton from "/$/system/static/html-hc/widgets/action-button/button.mjs";
 import EventBasedExtender from "/$/system/static/run/event-based-extender.mjs";
 /**
  *  This widget represents a single message within a chat 
@@ -27,6 +26,9 @@ export default class ChatMessage extends Widget {
             classes: ChatMessage.classList,
             innerHTML: `
                 <div class='container'>
+
+                    <div class='badge-area'></div>
+                
                     <div class='main'>
                         <div class='content'>
                             <div class='content-main'></div>
@@ -105,7 +107,40 @@ export default class ChatMessage extends Widget {
                 }
 
             }
+
+            if (!this.seen) {
+
+                /** @type {(keyof HTMLElementEventMap)[]} */
+                const events = ['mouseenter', 'mousedown', 'click', 'touchend']
+                const abortControl = new AbortController()
+                events.forEach(event => {
+                    this.html.addEventListener(event, () => {
+                        this.dispatchEvent(new CustomEvent('seen'));
+                        this.seen = true;
+                        abortControl.abort()
+                    }, { once: true, signal: abortControl.signal })
+
+                })
+            }
         });
+
+        /** @type {(event: "seen", cb: (event: CustomEvent)=> void, opts?:AddEventListenerOptions)=> void} */ this.addEventListener
+
+        /** @type {HTMLElement & {destroy: ()=> void}} */ this.badgeContent
+        this.widgetProperty(
+            {
+                selector: '*',
+                parentSelector: '.container >.badge-area',
+                childType: 'html',
+                onchange: () => {
+                    this.badgeContent.destroy = () => {
+                        this.badgeContent.dispatchEvent(new CustomEvent('destroy'))
+                        this.badgeContent.remove()
+                    }
+                }
+            },
+            'badgeContent'
+        )
 
         /** @type {boolean} */ this.failed
         this.htmlProperty(undefined, 'failed', 'class')

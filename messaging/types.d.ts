@@ -104,12 +104,26 @@ global {
         }
         type MessagesCollection = Collection<Message>
 
+
+        interface TimePosition {
+            chat: string
+            member: string
+            position: {
+                delivered: number
+                read: number
+            }
+        }
+
+        type TimePositionsCollection = Collection<TimePosition>
+
         interface Collections {
             messages: MessagesCollection
+            timePositions: TimePositionsCollection
         }
 
 
 
 
     }
+
 }

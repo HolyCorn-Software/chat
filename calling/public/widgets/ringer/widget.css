@@ -19,6 +19,12 @@
     background-color: var(--color2);
 }
 
+.hc-telep-chat-call-ringer-content.destroyed>.container {
+    opacity: 0;
+    transform: translateY(-90%);
+    transition: 0.5s 0.125s;
+}
+
 .hc-telep-chat-call-ringer-content>.container>.main {
     display: flex;
     gap: 3em;

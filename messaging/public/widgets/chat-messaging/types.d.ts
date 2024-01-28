@@ -18,6 +18,10 @@ global {
             isOwn: boolean
             isNew: boolean
         }
+
+        type TimePositionsTable = {
+            [member: string]: telep.chat.messaging.TimePosition
+        }
     }
 
     namespace soul.http.frontendManager.runManager.ui.event_based_extender {

@@ -31,3 +31,11 @@
 .hc-telep-chat-messaging.hc-widget-ready>.container>.messages {
     transition: 0.25s 0.125s;
 }
+
+.hc-telep-chat-messaging>.container>.read-check-area {
+    position: absolute;
+    top: 1em;
+    width: 100%;
+    height: calc(100% - 2em);
+    /* border: 1px solid red; */
+}

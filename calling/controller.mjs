@@ -74,7 +74,7 @@ export default class ChatCallingController {
             }
         );
 
-        const id = await this[manager].createCall({ recipients: chatInfo.recipients, caller: userid, type })
+        const id = await this[manager].createCall({ caller: userid, type, chat: chatInfo })
 
         return id
     }
@@ -90,19 +90,48 @@ export default class ChatCallingController {
     }
 
     /**
-     * This method joins the socket of the calling 
+     * This method updates the server what the client's latest SDP descriptor is, and 
+     * @param {object} param0 
+     * @param {string} param0.userid
+     * @param {string} param0.call
+     * @param {telep.chat.calling.SDPUpdateData} param0.data 
+     */
+    async updateSDPData({ userid, call, data }) {
+        return await this[manager].updateSDPData({ id: call, member: userid, data })
+    }
+
+    /**
+     * This method indicates to everyone, that the user is part of the call
+     * @param {object} param0 
+     * @param {string} param0.id
+     * @param {string} param0.userid
+     * 
+     * @returns {Promise<void>}
+     */
+    async connect({ userid, id }) {
+
+        await this[manager].connect({ member: userid, id })
+
+    }
+
+    /**
+     * This method is called by a user, when he's leaving a call
      * @param {object} param0 
      * @param {string} param0.userid
      * @param {string} param0.id
-     * @param {FacultyPublicJSONRPC} param0.$client
-     * @returns {Promise<void>}
      */
-    async joinStream({ userid, id, $client }) {
-        await this[manager].joinStream({ id, userid, socket: $client.socketClient })
-        setTimeout(() => {
-            $client.destroy()
-        }, 500)
+    async leaveCall({ userid, id }) {
+        await this[manager].leaveCall({ call: id, member: userid })
+    }
 
+
+    /**
+     * This method returns the ongoing calls that the invoking user is invited to
+     * @param {object} param0 
+     * @param {string} param0.userid
+     */
+    async getMyOngoingCalls({ userid }) {
+        return this[manager].getOngoingCallsFor({ correspondent: userid })
     }
 
 }

@@ -49,6 +49,9 @@ global {
             /** The icon of the chat. Only applies to group chats */
             icon: string
 
+            /** Tells us the last time this chat was modified */
+            modified: number
+
         }
 
         type ChatType = "private" | "group"

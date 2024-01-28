@@ -12,6 +12,10 @@ import shortUUID from "short-uuid"
 
 const collection = Symbol()
 
+function modernuser() {
+    return FacultyPlatform.get().connectionManager.overload.modernuser()
+}
+
 
 export default class ChatManagement {
 
@@ -22,6 +26,8 @@ export default class ChatManagement {
      */
     constructor(coln) {
         this[collection] = coln
+
+        this.events = new EventTarget()
     }
 
     /**
@@ -39,17 +45,27 @@ export default class ChatManagement {
         }
 
 
+        const recipients = Reflect.ownKeys(
+            Object.fromEntries(
+                [...init.recipients, userid].map(x => [x, true])
+            )
+        );
         await this[collection].insertOne(
             {
                 id,
                 ...init,
                 // Let's have a unique list of recipients, that includes the sender
-                recipients: Reflect.ownKeys(
-                    Object.fromEntries(
-                        [...init.recipients, userid].map(x => [x, true])
-                    )
-                )
+                recipients: recipients
             }
+        );
+
+        this.events.dispatchEvent(
+            new CustomEvent(
+                'new-chat',
+                {
+                    detail: { id }
+                }
+            )
         )
 
         return id;
@@ -76,10 +92,22 @@ export default class ChatManagement {
             }
         )
 
-        await this[collection].updateOne({ id: data.id }, { $set: { ended: Date.now() } })
+        await this[collection].updateOne({ id: data.id }, { $set: { ended: Date.now(), modified: Date.now() } })
 
         // And, when we're done, let other components know
         faculty.connectionManager.events.emit(`${faculty.descriptor.name}-chat-end`, { id: data.id })
+
+        // Also let the users know
+
+        this.events.dispatchEvent(
+            new CustomEvent(
+                'chat-ended',
+                {
+                    detail: { id: data.id }
+                }
+            )
+        )
+
     }
 
 
@@ -110,7 +138,19 @@ export default class ChatManagement {
             return
         }
         // And now, let's activate, or deactivate the chat
-        await this[collection].updateOne({ id: data.chat }, { $set: { disabled: !!!data.state } })
+        await this[collection].updateOne({ id: data.chat }, { $set: { disabled: !!!data.state, modified: Date.now() } })
+
+        this.events.dispatchEvent(
+            new CustomEvent(
+                'chat-state-changed',
+                {
+                    detail: {
+                        id: data.chat,
+                        state: active
+                    }
+                }
+            )
+        )
     }
 
     /**
@@ -122,7 +162,7 @@ export default class ChatManagement {
      * @returns {Promise<telep.chat.management.Chat>}
      */
     async getChatInfoSecure(data) {
-        const chatData = await this[collection].findOne({ id: data.id })
+        const chatData = await this[collection].findOne({ id: data.id }, { projection: { _id: 0 } })
         if (!chatData) {
             throw new Exception(`The chat ${data.id}, was not found!`)
         }
@@ -136,7 +176,7 @@ export default class ChatManagement {
                     whitelist: chatData.recipients
                 }
             )) {
-                console.log(`chatData is `, chatData)
+                console.log(`chatData is `, chatData, `\nAnd userid is `, data.userid)
                 throw new Exception(`Sorry, you're not even part of this chat (${data.id})`)
             }
         }
@@ -152,14 +192,19 @@ export default class ChatManagement {
      * @returns {Promise<telep.chat.management.Chat[]>}
      */
     async getUserChats({ userid, type }) {
-        return this[collection].find({
-            recipients: {
-                $elemMatch: {
-                    $eq: userid
-                }
+        return this[collection].find(
+            {
+                recipients: {
+                    $elemMatch: {
+                        $eq: userid
+                    }
+                },
+                ...(typeof type !== 'undefined' ? { type } : {})
             },
-            ...(typeof type !== 'undefined' ? { type } : {})
-        }).toArray()
+            {
+                projection: { _id: 0 }
+            }
+        ).toArray()
     }
 
 

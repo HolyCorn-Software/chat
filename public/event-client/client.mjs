@@ -9,30 +9,51 @@
 import ChatClientRemoteMethods from "./remote/remote.mjs";
 import hcRpc from "/$/system/static/comm/rpc/aggregate-rpc.mjs";
 import EventChannelClient from "/$/system/static/comm/rpc/json-rpc/event-channel/client.mjs";
+import GlobalCallingManager from "/$/chat/calling/static/call-manager/global-calling-manager.mjs";
 
 
 /** @type {ChatEventClient} */
 let instance;
 
+/**
+ * @extends EventChannelClient<telep.chat.events.AllEvents>
+ */
 export default class ChatEventClient extends EventChannelClient {
 
     static async create() {
 
         if (instance) {
-            return instance
+            try {
+                return await instance
+            } catch { }
         }
 
-        await hcRpc.chat.events.register()
-        let firstTime = true
+        return await (instance = (async () => {
 
-        return instance = new this(hcRpc.chat.$jsonrpc, async () => {
-            hcRpc.chat.$jsonrpc.stub = (this.remote ||= new ChatClientRemoteMethods())
 
-            if (firstTime) {
-                return firstTime = false
+            let firstTime = true
+
+            async function checkOngoingCalls() {
+                const calls = await hcRpc.chat.calling.getMyOngoingCalls()
+                for (const call of calls) {
+                    GlobalCallingManager.get().remote.ring({ id: call })
+                }
             }
-            await hcRpc.chat.events.register()
-        });
+
+            await checkOngoingCalls()
+
+            return new this(hcRpc.chat.$jsonrpc, async function () {
+                await hcRpc.chat.events.register()
+                hcRpc.chat.$jsonrpc.stub = new ChatClientRemoteMethods()
+
+                if (firstTime) {
+                    return firstTime = false
+                }
+                // Get current calls, and put a ringer UI, for each.
+                checkOngoingCalls()
+            });
+
+        })())
     }
 
 }
@@ -40,10 +61,10 @@ export default class ChatEventClient extends EventChannelClient {
 
 
 
-window.addEventListener('load', async () => {
+setTimeout(async () => {
     try {
         await (await ChatEventClient.create()).init()
     } catch (e) {
         // TODO: Schedule a retry
     }
-}, { once: true })
+}, 2000)

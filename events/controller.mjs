@@ -39,15 +39,15 @@ export default class ChatEventsController extends FacultyPublicJSONRPC.EventChan
     async register({ data, client }) {
         const userid = (await muser_common.getUser(client)).id;
 
-        // Now, get the groups the user belongs to, and sign him up for notifications
+        // Now, get the chats the user belongs to, and sign him up for notifications
         // only from the active chats
-        const groups = await this[controllers].management.getUserChats({ userid })
+        const chats = await this[controllers].management.getUserChats({ userid })
 
-        const active = this.filterByActive(groups.map(x => x.id))
+        const activeChats = this.filterByActive(chats.map(x => x.id))
 
         return [
             userid,
-            ...active
+            ...activeChats
         ]
 
     }

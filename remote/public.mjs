@@ -13,6 +13,7 @@ import ChatManagementPublicMethods from "../management/remote/public.mjs";
 import MessagingPublicMethods from "../messaging/remote/public.mjs";
 
 const controller = Symbol()
+const internal = Symbol()
 
 export default class ChatPublicMethods extends FacultyPublicMethods {
 
@@ -29,6 +30,87 @@ export default class ChatPublicMethods extends FacultyPublicMethods {
         this.calling = new CallingPublicMethods(controller_.calling)
         this[controller] = controller_
 
+        this[controller].management.events.addEventListener('new-chat', async (event) => {
+            const data = event.detail
+            if (!data.id) {
+                return;
+            }
+
+            try {
+                const chat = await this[controller].management.getChatInfoSecure({ id: data.id });
+                this[controller].events.inform(chat.recipients, new CustomEvent('telep-chat-new-chat', { detail: { chat: await this[internal].getChatMetaData(chat) } }))
+            } catch (e) {
+                console.warn(`Failed to route chat-changed event, because `, e)
+            }
+
+
+
+        })
+
+
+        this[controller].management.events.addEventListener('chat-ended', async (event) => {
+            const data = event.detail
+            if (!data.id) {
+                return;
+            }
+
+            try {
+                this[controller].events.inform([data.id], new CustomEvent('telep-chat-chat-ended', { detail: { id: data.id } }))
+            } catch (e) {
+                console.warn(`Failed to route chat-ended event, because `, e)
+            }
+
+
+
+        })
+
+
+        this[controller].management.events.addEventListener('chat-state-changed', async (event) => {
+            const data = event.detail
+            if (!data.id || !data.state) {
+                return;
+            }
+
+            try {
+                this[controller].events.inform([data.id], new CustomEvent('telep-chat-state-changed', { detail: { id: data.id, state: data.state } }))
+            } catch (e) {
+                console.warn(`Failed to route chat-state-changed event, because `, e)
+            }
+
+
+
+        })
+
+
+    }
+
+    [internal] = {
+        /**
+         * 
+         * @param {telep.chat.management.Chat} chat 
+         * @param {string} userid
+         * @returns {telep.chat.ChatMetadata}
+         */
+        getChatMetaData: async (chat, userid) => {
+            try {
+                /** @type {telep.chat.ChatMetadata} */
+                const meta = { ...chat }
+                const viewData = await this[controller].management.getChatViewData({ userid, id: chat.id })
+                meta.label = viewData.label
+                meta.icon = viewData.icon
+                /** @type {telep.chat.messaging.Message} */
+                const lastMessage = (await (await this[controller].messaging.getMessages({ chat: chat.id, userid, limit: 1 })).next()).value
+                // TODO: Improve captioning
+                meta.caption = lastMessage?.data.text || (lastMessage?.data.media && lastMessage?.data.media.caption || '')
+                meta.lastDirection = lastMessage?.sender == userid ? 'outgoing' : 'incoming'
+                meta.lastTime = lastMessage?.time || chat.created?.time
+                meta.unreadCount = await this[controller].messaging.countUnread({ chat: chat.id, userid })
+                return meta
+            } catch (e) {
+                e.chat = chat
+                throw e
+            }
+        }
     }
 
 
@@ -41,28 +123,7 @@ export default class ChatPublicMethods extends FacultyPublicMethods {
 
         const chats = await this[controller].management.getUserChats({ userid })
         const results = await Promise.allSettled(
-            chats.map(async chat => {
-                try {
-                    /** @type {telep.chat.ChatMetadata} */
-                    const meta = { ...chat }
-                    const viewData = await this[controller].management.getChatViewData({ userid, id: chat.id })
-                    meta.label = viewData.label
-                    meta.icon = viewData.icon
-                    /** @type {telep.chat.messaging.Message} */
-                    const lastMessage = (await (await this[controller].messaging.getMessages({ chat: chat.id, userid, limit: 1 })).next()).value
-                    // TODO: Improve captioning
-                    meta.caption = lastMessage?.data.text || (lastMessage?.data.media && lastMessage?.data.media.caption || '')
-                    meta.lastDirection = lastMessage?.sender == userid ? 'outgoing' : 'incoming'
-                    // TODO: Get information about the count of unread messages
-                    meta.lastTime = lastMessage?.time || chat.created?.time
-
-                    return meta
-                } catch (e) {
-                    e.chat = chat
-                    throw e
-                }
-
-            })
+            chats.map((item) => this[internal].getChatMetaData(item, userid))
         );
 
         results.filter(x => x.status == 'rejected').forEach(result => {

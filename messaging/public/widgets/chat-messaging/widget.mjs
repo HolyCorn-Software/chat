@@ -18,10 +18,13 @@ const load = Symbol()
 const lastChatID = Symbol()
 const onMessage = Symbol()
 
+const timePositions = Symbol()
+const setUnreadBadgeCount = Symbol()
+const onUnreadCountChange = Symbol()
+const drawUnreadCountBadge = Symbol()
+const lastScrollPosition = Symbol()
 
-/**
- * @extends Widget<ChatMessaging>
- */
+
 export default class ChatMessaging extends Widget {
 
     constructor({ chat } = {}) {
@@ -33,6 +36,7 @@ export default class ChatMessaging extends Widget {
                 classes: ChatMessaging.classList,
                 innerHTML: `
                     <div class='container'>
+                        <div class='read-check-area'></div>
                         <div class='messages'></div>
                         <div class='compose'></div>
                     </div>
@@ -60,6 +64,7 @@ export default class ChatMessaging extends Widget {
                         );
                         compose.clear()
                         this.scrollToBottom()
+                        this.myTimePosition.position.read = Date.now()
                     })
 
 
@@ -91,6 +96,16 @@ export default class ChatMessaging extends Widget {
             }
         );
 
+        const updateTimePosition = new DelayedAction(() => {
+
+            return hcRpc.chat.messaging.updateUserTimePosition(
+                {
+                    chat: this.chat.id,
+                    position: this.myTimePosition.position,
+                }
+            )
+        }, 500, 2500)
+
 
 
         /** @type {telep.chat.messaging.frontend.Message[]} */ this.messages
@@ -98,7 +113,6 @@ export default class ChatMessaging extends Widget {
             {
                 selector: ['', ...ChatMessage.classList].join('.'),
                 parentSelector: '.container >.messages',
-                property: 'messages',
                 transforms: {
                     /**
                      * 
@@ -107,22 +121,88 @@ export default class ChatMessaging extends Widget {
                      */
                     set: (msg) => {
                         const widget = new ChatMessage(msg);
+                        widget.seen = this.myTimePosition?.position.read > (msg.edited?.time || msg.time)
+                        if (!widget.seen) {
+                            widget.addEventListener('seen', () => {
+                                const msgTime = (msg.edited?.time || msg.time)
+                                if (msgTime > (this.myTimePosition.position.read || 0)) {
+                                    this.myTimePosition.position.read = msgTime
+                                    updateTimePosition()
+                                    this.dispatchEvent(new CustomEvent('unread-count-change'))
+                                }
+                            }, { once: true })
+                        }
                         return widget.html
                     },
 
                     get: (html) => {
                         return html.widgetObject.data
                     }
+                },
+                onchange: new DelayedAction(
+                    () => {
+                        this.dispatchEvent(new CustomEvent('last-message-change'))
+                    }, 200, 1500)
+            },
+            'messages'
+        );
+
+        /** @type {(event: "unread-count-change"|"last-message-change", cb: (event: Event), opts?:AddEventListenerOptions)=> void} */ this.addEventListener
+
+
+        // There's is this special static area of the UI, that's just responsible for intersecting with message view HTMLs
+        // so that we can know that a message has been viewed.
+        /** @type {HTMLElement} */ this.intersectionBox
+        this.widgetProperty(
+            {
+                selector: '.read-check-area',
+                parentSelector: ':scope >.container',
+                childType: 'html',
+            },
+            'intersectionBox'
+        );
+
+        /** @type {ChatMessage[]} */ this.messageWidgets
+        this.pluralWidgetProperty(
+            {
+                selector: ['', ...ChatMessage.classList].join('.'),
+                parentSelector: '.container >.messages',
+                childType: 'widget'
+            },
+            'messageWidgets'
+        )
+
+
+        this.addEventListener('unread-count-change', this[onUnreadCountChange])
+        this.html.addEventListener('hc-connected-to-dom', new DelayedAction(() => {
+            if (this.unreadCount > 0) {
+                this[drawUnreadCountBadge]()
+            } else {
+                if (this[lastScrollPosition]) {
+                    this.scrollToBottom(this[lastScrollPosition])
+                } else {
+                    this.scrollToBottom()
                 }
             }
-        );
+        }, 100, 2000))
+
+        // Now, the logic of remembering the last scroll position
+        this.html.$('.container >.messages').addEventListener('scroll', new DelayedAction(() => {
+            this[lastScrollPosition] = this.html.$('.container >.messages').scrollTop
+        }, 250, 2000), { signal: this.destroySignal })
 
         Object.assign(this, arguments[0])
 
         /** @type {telep.chat.management.Chat} */ this.chat
 
+        /** @type {Omit<telep.chat.messaging.TimePosition, "chat">[]} */
+        this[timePositions] = [];
+
 
         this.waitTillDOMAttached().then(() => this.load())
+    }
+    get myTimePosition() {
+        return this[timePositions].find(x => x.member == this.me.id)
     }
     async load() {
         await this.blockWithAction(
@@ -136,25 +216,37 @@ export default class ChatMessaging extends Widget {
     }
 
     scrollToBottom = new DelayedAction(
-        () => {
+        /**
+         * 
+         * @param {number} offset If this argument is passed, then we would not scroll to the bottom. We'll stop at position
+         */
+        (offset) => {
+
+            const msgUI = this.html.$('.container >.messages');
+
+            const startTime = Date.now()
+
+            if (offset) {
+                return msgUI.scrollTop = offset
+            }
+
             let interval;
 
             const cleanup = () => {
                 clearInterval(interval)
             }
-            let speed = 1
+            let speed = 4
 
             interval = setInterval(() => {
-                const msgUI = this.html.$('.container >.messages');
                 msgUI.scrollTop += (5 * speed)
                 speed += 0.45
                 const available = Math.round(msgUI.scrollHeight - msgUI.getBoundingClientRect().height);
 
-                if (msgUI.scrollTop >= available) {
+                if ((msgUI.scrollTop >= available) || (Date.now() - startTime > 5000)) {
                     cleanup()
                 }
             }, 20)
-        }, 250
+        }, 100, 2000
     )
 
     /**
@@ -168,7 +260,8 @@ export default class ChatMessaging extends Widget {
         // Load the last 100 messages, and then wait for the user
         // to request for earlier messages
 
-        const userinfo = await hcRpc.modernuser.authentication.whoami();
+        const userinfo = this.me = await hcRpc.modernuser.authentication.whoami();
+        this[timePositions] = (await hcRpc.chat.messaging.getMemberTimePositions({ chat: chatID, }))
         const currentMessages = [...this.messages]
         const uiList = [];
 
@@ -176,16 +269,30 @@ export default class ChatMessaging extends Widget {
             const uListFinal = [...new Set(uiList.map(x => x.id))].map(x => uiList.find(uL => uL.id === x))
             this.messages = [...currentMessages, ...uListFinal]
 
-            this.scrollToBottom()
+            setTimeout(() => {
+
+                // We want to put a badge showing the count of unread 
+                if (this.unreadCount > 0) {
+                    this[drawUnreadCountBadge]();
+                } else {
+                    this.scrollToBottom()
+                }
+
+            }, 200)
+
+
+            // Update the parent widget, that the last message changed
+
+
 
         }
         const cleanup = () => {
             clearInterval(interval)
             doUpate()
         }
-        const interval = setInterval(doUpate, 100)
+        const interval = setInterval(doUpate, 2000)
         try {
-            for await (const message of await hcRpc.chat.messaging.getMessages({ chat: chatID, limit: 100, earliestMessage: lastMessage })/*randomMessages(chatID, userinfo.id)*/) {
+            for await (const message of await hcRpc.chat.messaging.getMessages({ chat: chatID, limit: 100, earliestMessage: lastMessage })) {
                 // Prepend the message
                 message.isOwn = userinfo.id === message.sender
                 // The reason for this change in order, is due to the fact that
@@ -206,6 +313,65 @@ export default class ChatMessaging extends Widget {
     }
 
     /**
+     * This method directly writes the unread count to a target widget
+     * @param {ChatMessage} target 
+     */
+    [setUnreadBadgeCount](target) {
+        target.badgeContent = hc.spawn(
+            {
+                innerHTML: `<div class='unread-count' style='display:inline; padding-right: 1ex;'>${this.unreadCount}</div> unread messages`
+            }
+        );
+    }
+
+    /**
+     * This method rightfully draws the unread count badge in the right position, with the right value.
+     */
+    [drawUnreadCountBadge]() {
+        this.messageWidgets.forEach(x => x.badgeContent?.destroy()) // first, we remove the old badge
+        if (this.unreadCount < 1) {
+            // Let's not fall into the temptation of 0 unread messages
+            return
+        }
+        const mainMsgWidget = this.messageWidgets[this.messageWidgets.length - this.unreadCount - 1];
+        if (!mainMsgWidget) return;
+        this[setUnreadBadgeCount](mainMsgWidget)
+        mainMsgWidget.html.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+    }
+
+    get unreadCount() {
+        return this.messages.filter(x => !x.isOwn && ((x.edited?.time || x.time) > (this.myTimePosition.position.read || 0))).length
+    }
+
+    [onUnreadCountChange]() {
+        // This method is called when the unread count changes
+        // This method is not interested in re-calculating the right position of the unread count, but just updating the count
+        // We only update the position, if the difference between the count, and the message widget badged, is more than 3
+
+
+        const currBadgeWidget = this.messageWidgets.find(x => (typeof x.badgeContent) != 'undefined')
+
+        if (!currBadgeWidget) {
+            return this[drawUnreadCountBadge]()
+        }
+
+
+        const currBadgeIndex = this.messageWidgets.findIndex(x => x == currBadgeWidget);
+        const expectedBadgeIndex = this.messageWidgets.length - this.unreadCount - 1
+        // If the difference between ideal, and real, is too much (>3), then we draw all over
+        if ((expectedBadgeIndex - currBadgeIndex) > 3) {
+            return this[drawUnreadCountBadge]()
+        }
+
+        // And, for what we normally expect, that the difference is not so much, and we just want to update the count on the current badge
+        // But wait... Let's not fall into the trap of zero unread messages
+        if (this.unreadCount < 1) {
+            return this[drawUnreadCountBadge]()
+        }
+        this[setUnreadBadgeCount](currBadgeWidget)
+    }
+
+    /**
      * This method will ensure that new messages will be received, and added to the UI
      */
     async startListening() {
@@ -222,22 +388,34 @@ export default class ChatMessaging extends Widget {
 
         await chatEventClient.init()
 
-        const eventName = `chat-${this[lastChatID] = this.chat.id}-message`;
+        const msgEventName = `chat-${this[lastChatID] = this.chat.id}-message`;
 
         if (this[onMessage]) {
-            chatEventClient.events.removeEventListener(eventName, this[onMessage])
+            chatEventClient.events.removeEventListener(msgEventName, this[onMessage])
         }
 
-        chatEventClient.events.addEventListener(eventName,
+        chatEventClient.events.addEventListener(msgEventName,
             this[onMessage] = new DelayedAction(
                 () => {
                     const lastMessage = this.messages.at(-1)
                     // TODO: Place the error in the UI
                     this[load]({ chatID: this.chat.id, lastMessage: lastMessage.id }).catch(e => handle(e))
                 },
-                1000
+                1000, 5000
             )
-        )
+        );
+
+        const timePositionEventName = `chat-${this[lastChatID]}-user-timeposition-change`
+        chatEventClient.events.addEventListener(timePositionEventName, ({ detail }) => {
+            /** @type {Omit<telep.chat.messaging.TimePosition, "chat">} */
+            const data = detail
+            const existing = this[timePositions].find(x => x.member == data.member) || { ...data }
+            Object.assign(existing.position, data.position)
+            this[timePositions] = [
+                ...this[timePositions].filter(x => x.member != existing.member),
+                existing
+            ]
+        })
     }
 
 

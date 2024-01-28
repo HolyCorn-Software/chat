@@ -15,7 +15,8 @@ const collections = new CollectionProxy(
     {
         chats: 'chats',
         messaging: {
-            messages: 'messages'
+            messages: 'messages',
+            timePositions: 'userTimePositions'
         }
     }
 )

@@ -33,11 +33,9 @@ import { Widget, hc } from "/$/system/static/html-hc/lib/widget/index.mjs";
 import hcRpc from "/$/system/static/comm/rpc/aggregate-rpc.mjs";
 import libCall from "../../helper.mjs";
 import { handle } from "/$/system/static/errors/error.mjs";
-import CallWidget from "../call/widget.mjs";
-import PopupMenu from "/$/system/static/html-hc/widgets/popup-menu/popup.mjs";
+import CallPopup from "../call/popup.mjs";
 /**
  * This widget is the main content of the call ringer ui 
- * @extends Widget<CallRingerContent>
  */
 class CallRingerContent extends Widget {
 
@@ -118,13 +116,16 @@ class CallRingerContent extends Widget {
 
                     this.html.$('.container >.main >.call-details >.call-type-label >.label-main').innerHTML = libCall.getCallTypeLabel(data.type)
 
+
                     this.html.$('.container >.main >.button.accept').addEventListener('click', () => {
-                        new PopupMenu(
-                            {
-                                content:
-                                    new CallWidget({ id: this.call, type: data.type }).html,
-                            }
-                        ).show()
+                        new CallPopup({ id: this.call, type: data.type }).show()
+                        this.destroy()
+                    }, { signal: this.destroySignal })
+
+
+                    this.html.$('.container >.main >.button.reject').addEventListener('click', () => {
+                        this.destroy()
+                        hcRpc.chat.calling.leaveCall({ id: this.call })
                     })
 
                 }

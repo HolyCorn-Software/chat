@@ -4,68 +4,91 @@
     This stylesheet accounts for the layout of the call widget
 */
 
-.hc-telep-chat-call-widget>.container::before {
-    content: '';
-    width: 100%;
-    height: 100%;
-    top: 0px;
-    left: 0px;
-    background-image: url('./res/call-bg.webp');
-    background-size: cover;
-    background-position: center;
-    position: absolute;
-    z-index: -1;
-    filter: blur(5px);
-}
 
 .hc-telep-chat-call-widget>.container {
-    display: flex;
+    display: inline-flex;
     flex-direction: column;
-    width: clamp(100px, 100vw - 2em, 500px);
-    height: calc(100vh - 2em);
-    font-family: bariolBold;
+    gap: 1.95em;
+    padding: 1.5em;
+    border-radius: 1em;
+    background-color: var(--accent-color);
+    font-family: comfortaa;
+    width: clamp(250px, 90vw - 4em, 1050px);
 }
 
 .hc-telep-chat-call-widget>.container>.top {
-    flex-grow: 0.8;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5em;
 }
+
+.hc-telep-chat-call-widget>.container>.top>.correspondents {
+    display: flex;
+    gap: 3.5em;
+    justify-content: center;
+    flex-wrap: wrap;
+    overflow-y: auto;
+    max-height: calc(80vh - 5em);
+}
+
+@media screen and (max-width: 420px) {
+    .hc-telep-chat-call-widget>.container>.top>.correspondents {
+        justify-content: unset;
+    }
+
+    .hc-telep-chat-call-widget>.container>.top>.correspondents>* {
+        flex-grow: 1;
+    }
+
+    .hc-telep-chat-call-widget>.container>.top>.correspondents .hc-telep-chat-call-widget-correspondent>.container {
+        min-width: 100%;
+        aspect-ratio: 16/9;
+    }
+}
+
 
 .hc-telep-chat-call-widget>.container>.bottom {
-    flex-grow: 0.2;
-    display: flex;
-    flex-direction: column;
-    gap: 0.25em;
-}
-
-.hc-telep-chat-call-widget>.container>.bottom>.actions {
-    display: flex;
-    justify-content: center;
-    padding-top: 2em;
-    gap: 1em;
-    flex-wrap: wrap;
-}
-
-.hc-telep-chat-call-widget>.container>.bottom>.correspondent-info {
-    display: flex;
-    justify-content: center;
-    font-size: 1.5em;
-    color: var(--theme-purple-color, var(--accent-color, rgb(5, 5, 88)));
-}
-
-.hc-telep-chat-call-widget>.container>.bottom>.call-info {
     display: flex;
     flex-direction: column;
 }
 
-.hc-telep-chat-call-widget>.container>.bottom>.call-info>.call-time {
+.hc-telep-chat-call-widget>.container>.bottom>.call-end {
+    width: 100%;
+    padding: 0.75em;
+    background-color: black;
+    color: white;
+    border-radius: 0.25em;
     align-self: center;
-    border-radius: 0.75em;
-    background-color: white;
-    color: var(--theme-purple-color);
-    padding: 0.25em;
-    letter-spacing: 0.25em;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
+.hc-telep-chat-call-widget>.container>.bottom>.call-end>.call-end-main {
+    flex-grow: 1;
+    display: flex;
+    padding-left: 1.5em;
+    justify-content: center;
+}
+
+.hc-telep-chat-call-widget>.container>.bottom>.call-end>.call-end-main>.call-end-icon {
+    width: 3.5em;
+}
+
+.hc-telep-chat-call-widget>.container>.bottom>.call-end>.call-info>.call-time {
+    width: 3em;
+    height: 3em;
+    padding: 0.25em;
+    border-radius: 100%;
+    background-color: white;
+    color: black;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/** The UI of a call action */
+/* 
 
 .hc-telep-chat-call-widget-action>.container>.main {
     display: inline-flex;
@@ -74,7 +97,42 @@
     align-items: center;
     justify-content: center;
     border-radius: 100%;
-    color: white;
+    color: currentColor;
     padding: 0.75em;
-    background-color: var(--theme-blue-color);
+    background-color: white;
+    transition: 0.25s 0.125s;
+}
+
+.hc-telep-chat-call-widget-action.active>.container>.main {
+
+    background-color: rgb(85, 82, 82);
+    color: rgb(255, 255, 255);
+}
+
+.hc-telep-chat-call-widget-action>.container>.main:hover {
+    background-color: black;
+    color: white;
+} */
+
+
+/** When the call widget is in compact mode */
+.hc-telep-chat-call-widget.compact {
+    position: fixed;
+    top: 1em;
+    z-index: 3;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    opacity: 0.6;
+}
+
+.hc-telep-chat-call-widget.compact:hover {
+    opacity: 1;
+}
+
+
+.hc-telep-chat-call-widget.compact>.container {
+    gap: 0.5em;
+    box-shadow: 0px 0px 0.125em rgb(230, 228, 228);
+    padding: 0.75em;
 }

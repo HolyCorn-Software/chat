@@ -1,5 +1,5 @@
 .
 
-Improved UX.
+Improved calling UI, to one that's more easily consistent with multi-party calls.
 
-Made it easier for other components to extend the messaging capabilities. 
+Changed architecture of calling to a peer-to-peer one.

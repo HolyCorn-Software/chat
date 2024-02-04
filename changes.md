@@ -1,3 +1,3 @@
 .
 
-Added list of STUN servers, to ensure easier setup of calls.
+Fixed minor bug related to propagating messages.

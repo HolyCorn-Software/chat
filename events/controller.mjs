@@ -40,14 +40,11 @@ export default class ChatEventsController extends FacultyPublicJSONRPC.EventChan
         const userid = (await muser_common.getUser(client)).id;
 
         // Now, get the chats the user belongs to, and sign him up for notifications
-        // only from the active chats
-        const chats = await this[controllers].management.getUserChats({ userid })
 
-        const activeChats = this.filterByActive(chats.map(x => x.id))
 
         return [
             userid,
-            ...activeChats
+            ...(await this[controllers].management.getUserChats({ userid })).map(x => x.id)
         ]
 
     }

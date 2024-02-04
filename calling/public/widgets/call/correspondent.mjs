@@ -82,6 +82,10 @@ export default class CallCorrespondent extends Widget {
         const me = await hcRpc.modernuser.authentication.whoami()
         const isMe = me.id == this.correspondent.profile.id;
 
+        /** @type {HTMLVideoElement} */
+        const videoHTML = hc.spawn({ tag: 'video', attributes: { autoplay: true } })
+        this.html.$('.container >.main >.view').appendChild(videoHTML)
+
         const lastValues = {
             offer: undefined,
             answer: undefined,
@@ -93,9 +97,6 @@ export default class CallCorrespondent extends Widget {
 
 
         const setupStreaming = async () => {
-            /** @type {HTMLVideoElement} */
-            const videoHTML = hc.spawn({ tag: 'video', attributes: { autoplay: true } })
-            this.html.$('.container >.main >.view').appendChild(videoHTML)
 
             const aborter = new AbortController()
 
@@ -119,11 +120,15 @@ export default class CallCorrespondent extends Widget {
 
             const connection = new RTCPeerConnection({
                 iceServers: [
-                    { urls: 'stun.l.google.com' },
-                    { urls: 'stun1.l.google.com' },
-                    { urls: 'stun2.l.google.com' },
-                    { urls: 'stun3.l.google.com' },
-                    { urls: 'stun4.l.google.com' },
+                    {
+                        urls: [
+                            'stun:stun.l.google.com:19302',
+                            'stun:stun1.l.google.com:19302',
+                            'stun:stun2.l.google.com:19302',
+                            'stun:stun3.l.google.com:19302',
+                            'stun:stun4.l.google.com:19302'
+                        ],
+                    }
                 ]
             });
 
@@ -201,15 +206,18 @@ export default class CallCorrespondent extends Widget {
             }
 
             connection.addEventListener('icecandidate', (event) => {
-                console.log(`New ICE candidate`)
 
-                handle.updateSDPData(
-                    {
-                        member: this.correspondent.profile.id,
-                        data: connection.localDescription.sdp
-                    }
-                )
+                if (event.candidate) {
+                    handle.sendIceCandidate({ member: this.correspondent.profile.id, candidate: event.candidate })
+                }
+
+
             }, { signal: aborter.signal });
+
+            handle.events.addEventListener('ice-candidate', ({ detail: candidate }) => {
+                console.log(`The remotely-triggered Ice candidate: `, candidate)
+                connection.addIceCandidate(candidate)
+            })
 
 
             handle.events.addEventListener('sdp-change', async () => {

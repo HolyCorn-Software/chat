@@ -147,6 +147,20 @@ export default class GlobalCallingManager {
             handle.data.rooms = rooms
 
             handle.events.dispatchEvent(new CustomEvent('rooms-change'))
+        },
+
+
+
+        /**
+         * This method sends an ICE candidate to a member on a call
+         * @param {object} param0 
+         * @param {string} param0.id
+         * @param {string} param0.member
+         * @param {string} param0.data
+         */
+        async addIceCandidate({ id, member, data }) {
+            const handle = await GlobalCallingManager.get().getHandle({ id })
+            handle.events.dispatchEvent(new CustomEvent('ice-candidate', { detail: data, member }))
         }
 
     }

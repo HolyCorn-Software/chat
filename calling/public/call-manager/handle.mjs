@@ -153,4 +153,11 @@ export default class CallHandle {
         return results
     }
 
+    /**
+     * This method sends an ICE candidate to the other member on the call
+     */
+    async sendIceCandidate({ member, candidate }) {
+        await hcRpc.chat.calling.sendIceCandidate({ member, call: this.data.id, data: candidate })
+    }
+
 }

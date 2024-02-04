@@ -101,6 +101,18 @@ export default class ChatCallingController {
     }
 
     /**
+     * This method sends an ICE candidate to a member on a call
+     * @param {object} param0 
+     * @param {string} param0.userid
+     * @param {string} param0.call
+     * @param {string} param0.member
+     * @param {string} param0.data
+     */
+    async sendIceCandidate({ userid, call, member, data }) {
+        await this[manager].sendIceCandidate({ userid, id: call, member, data })
+    }
+
+    /**
      * This method indicates to everyone, that the user is part of the call
      * @param {object} param0 
      * @param {string} param0.id

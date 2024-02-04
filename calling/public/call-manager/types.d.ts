@@ -21,7 +21,7 @@ global {
         }
 
         interface CallEvents extends EventTarget {
-            addEventListener: (event: 'pause' | 'resume' | 'end' | 'members-change' | 'sdp-change' | 'profiles-change' | "states-change", callback: (Event) => void, opts?: AddEventListenerOptions) => void
+            addEventListener: (event: 'pause' | 'resume' | 'end' | 'members-change' | 'sdp-change' | 'ice-candidate' | 'profiles-change' | "states-change", callback: (Event) => void, opts?: AddEventListenerOptions) => void
         }
 
 

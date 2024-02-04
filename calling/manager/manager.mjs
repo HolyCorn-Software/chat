@@ -143,10 +143,6 @@ export default class CallManager {
 
         await this.propagateMemberListChanges({ id })
 
-
-        console.log(`${member} connected, to call ${id}.`)
-
-
     }
 
 
@@ -325,6 +321,21 @@ export default class CallManager {
         return results
 
 
+    }
+
+
+
+    /**
+     * This method sends an ICE candidate to a member on a call
+     * @param {object} param0 
+     * @param {string} param0.userid
+     * @param {string} param0.id
+     * @param {string} param0.member
+     * @param {string} param0.data
+     */
+    async sendIceCandidate({ userid, id, member, data }) {
+        await this.getCallInfo({ id, userid })
+        await this[controllers].events.clients([member], { expectedClientLen: 1, retries: 5, timeout: 10_000, retryDelay: 250 }).calling.addIceCandidate({ id, member, data })
     }
 
 

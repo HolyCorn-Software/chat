@@ -45,8 +45,9 @@ export default class CallManager {
                             retryDelay: 500,
                             aggregation: {
                                 sameData: true,
-                                timeout: 5000
-                            }
+                                timeout: 2000
+                            },
+                            expectedClientLen: 1
                         }
                     ).calling.ring({ id }).catch(e => {
                         console.error(`Failed to make call (${id}) ring!\n`, e)
@@ -64,10 +65,11 @@ export default class CallManager {
      * @param {object} param0 
      * @param {telep.chat.calling.CallType} param0.type
      * @param {string} param0.caller
+     * @param {FacultyPublicJSONRPC} param0.$client
      * @param {telep.chat.management.Chat} param0.chat
      * @returns {Promise<string>}
      */
-    async createCall({ type, caller, chat }) {
+    async createCall({ type, caller, $client, chat }) {
 
         const rec = [...new Set([...chat.recipients, caller])]
 
@@ -76,6 +78,7 @@ export default class CallManager {
         this[stats][id] = {
             id,
             chat: chat.id,
+            caller,
             members: {
                 invited: rec,
                 acknowledged: [],
@@ -87,12 +90,12 @@ export default class CallManager {
             type: type === 'video' ? type : 'voice',
             rooms: [
 
-            ]
+            ],
 
         };
 
         // Since this is technically the first to connect to the call, let's create his details
-        await this.connect({ member: caller, id })
+        await this.connect({ member: caller, id, $client })
 
 
 
@@ -107,12 +110,12 @@ export default class CallManager {
      * This method is used to signal a client's involvement in a call.
      * @param {object} param0 
      * @param {string} param0.member
+     * @param {FacultyPublicJSONRPC} param0.$client
      * @param {string} param0.id
      */
-    async connect({ member, id }) {
+    async connect({ member, $client, id }) {
         await this.validateAccess({ id, userid: member })
         if (new Set([...this[stats][id].members.acknowledged]).has(member)) {
-            // console.log(`Call ${id}, already has ${member}`)
             return; // In case we already know, that he connected
         }
         this[stats][id].members.acknowledged = [...new Set([...this[stats][id].members.acknowledged, member])];
@@ -140,9 +143,43 @@ export default class CallManager {
             )
         });
 
+        if ($client) {
+            $client.addEventListener('destroy', () => {
+                setTimeout(() => {
+                    // At this stage, we're checking...
+                    // Are all the clients who have acknowledged the call all disconnected?
+                    // If so, the call is ended
+                    this.attemptCallEnd({ id })
+                }, 30_000)
+            })
+        }
+
 
         await this.propagateMemberListChanges({ id })
 
+    }
+
+    /**
+     * This method tries to end a call, if only one person is left, or everyone is disconnected
+     * @param {object} param0 
+     * @param {string} param0.id
+     * @returns 
+     */
+    attemptCallEnd({ id }) {
+        if (!this[stats][id]) {
+            // But, first things first, is the call already ended?
+            return
+        }
+        const realMembers = this[stats][id].members.acknowledged.filter(x => !this[stats][id].members.rejected.some(rej => rej == x))
+        const connected = this[controllers].events.filterByActive(realMembers);
+        if (connected.length == 0 || realMembers.length == 1) {
+            // We end the call, either when everyone is disconnected, or the only viable members of the call is one person
+            console.log(`Ending call ${id}, because ${realMembers.length == 1 ? "Only one person is left" : "Everyone disconnected"}`)
+            if (connected.length > 0) {
+                this[controllers].events.clients(connected, { aggregation: { timeout: 1000 }, expectedClientLen: connected.length, noError: true }).calling.end({ id }).catch(() => undefined)
+            }
+            delete this[stats][id]
+        }
     }
 
 
@@ -164,10 +201,14 @@ export default class CallManager {
         ids ||= call_data.members.invited.filter(inv => !call_data.members.acknowledged.some(ack => ack === inv))
 
         this[controllers].events.clients(ids, {
-            precallWait: 5000,
             retries: 5,
             timeout: 10_000,
-            retryDelay: 500
+            retryDelay: 500,
+            aggregation: {
+                timeout: 2000
+            },
+            expectedClientLen: ids.length,
+            noError: true,
         }).calling.ring(
             {
                 id: call
@@ -192,27 +233,16 @@ export default class CallManager {
     async leaveCall({ call, member }) {
         const callData = this[stats][call]
         if (!callData) {
-            return console.warn(`Trying to remove correspondent `, member, ` from call `, call, `, which doesn't exist.`);
+            return
         }
 
-        callData.members.rejected.push(member)
-
-        let changed = false;
-
-        callData.rooms.forEach(room => {
-            if (room[member]) {
-                changed = true
-                room[member].state = 'exited'
-            }
-        });
-
-        if (changed) {
-            // This could be a source of bugs
-            this.propagateMemberListChanges({ id: call })
-        }
+        callData.members.rejected = [...new Set([member, ...(callData.members.rejected || [])])]
 
 
-        // TODO: Deal with call termination
+        this.propagateMemberListChanges({ id: call })
+
+
+        setTimeout(() => this.attemptCallEnd({ id: call }), 5000)
 
 
 
@@ -243,6 +273,9 @@ export default class CallManager {
      */
     async getCallInfo({ id, userid }) {
         await this.validateAccess({ id, userid });
+        if (!this[stats][id]) {
+            throw new Exception(`Call ${id} not found.`)
+        }
         /** @type {Awaited<ReturnType<this['getCallInfo']>>} */
         const data = {
             ...this[stats][id],
@@ -250,12 +283,7 @@ export default class CallManager {
                 await (await FacultyPlatform.get().connectionManager.overload.modernuser()).profile.getProfiles(
                     [...this[stats][id].members.invited, ...this[stats][id].members.acknowledged]
                 )
-            ).map(corr => {
-                return {
-                    callerID: this[stats][id].members.invited.findIndex(x => x == corr.id),
-                    ...corr
-                }
-            }),
+            )
         }
         return data
     }
@@ -301,19 +329,24 @@ export default class CallManager {
 
         for (const room of this[stats][id].rooms) {
 
-            if ((room.junior == member) || (room.superior == member)) {
-                const otherMember = room.junior == member ? room.superior : room.junior
-                const dataType = room.junior == member ? 'answer' : 'offer';
+
+            /** @type {telep.chat.calling.CallRoomRank[]} */
+            const ranks = ['junior', 'superior']
+            const rank = ranks.find(x => room[x] == member)
+
+            if (rank) {
+                const otherMember = room[ranks.find(x => x != rank)]
+                const dataType = rank == 'junior' ? 'answer' : 'offer';
+
                 room[dataType] = data[otherMember]
                 room[`${dataType}Time`] = Date.now()
-                membersToBeInformed.add(otherMember)
+                if (data[otherMember] != '') {
+                    membersToBeInformed.add(otherMember)
+                }
                 results[otherMember] = dataType
 
             }
         }
-
-
-        membersToBeInformed.add(member)
 
         this.propagateSDPUpdates({ id, members: membersToBeInformed })
 
@@ -335,7 +368,7 @@ export default class CallManager {
      */
     async sendIceCandidate({ userid, id, member, data }) {
         await this.getCallInfo({ id, userid })
-        await this[controllers].events.clients([member], { expectedClientLen: 1, retries: 5, timeout: 10_000, retryDelay: 250 }).calling.addIceCandidate({ id, member, data })
+        await this[controllers].events.clients([member], { expectedClientLen: 1, retries: 15, timeout: 10_000, retryDelay: 250, noError: true }).calling.addIceCandidate({ id, member, data }).catch(() => undefined)
     }
 
 
@@ -366,12 +399,12 @@ export default class CallManager {
             }
 
 
-            this[controllers].events.clients([clientId], { aggregation: { timeout: 500 }, expectedClientLen: 1, precallWait: 500 }).calling.updateSDPs(
+            this[controllers].events.clients([clientId], { aggregation: { timeout: 250, sameData: false }, expectedClientLen: 1, precallWait: 0, noError: true }).calling.updateSDPs(
                 {
                     data: localSDPTable,
                     id
                 }
-            ).catch(e => console.warn(`Could not inform client ${clientId}`, e))
+            ).catch(() => undefined)
         }
     }
 
@@ -383,20 +416,21 @@ export default class CallManager {
      */
     async propagateMemberListChanges({ id }) {
 
+        const callData = this[stats][id];
+        const members = (callData.members.invited).filter(x => callData.members.rejected.findIndex(r => r == x) == -1);
 
         /** @type {Parameters<this[controllers]['events']['clients']>['1']} */
         const options = {
             aggregation: {
-                timeout: 1000,
+                timeout: 2000,
                 sameData: false
             },
-            expectedClientLen: this[stats][id].members.invited.length,
-            precallWait: 5000,
+            expectedClientLen: members.length - 1,
+            precallWait: 50,
+            noError: true
         };
-        const callData = this[stats][id];
-        const invited = callData.members.invited;
 
-        this[controllers].events.clients(invited, options).calling.updateCallMembers({
+        this[controllers].events.clients(members, options).calling.updateCallMembers({
             id,
             members: this[stats][id].members
         }).catch(e => {

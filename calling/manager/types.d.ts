@@ -18,6 +18,7 @@ global {
         interface CallStat {
             id: string
             chat?: string
+            caller: string,
             members: {
                 invited: string[]
                 acknowledged: string[]
@@ -49,6 +50,8 @@ global {
             /** The id of the member in the room, who makes answers */
             junior: string
         }
+
+        type CallRoomRank = keyof Omit<CallRoomState, keyof SDPTableEntry>
 
 
 

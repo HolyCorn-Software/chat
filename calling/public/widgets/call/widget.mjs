@@ -127,7 +127,7 @@ export default class CallWidget extends Widget {
                 parentSelector: '.container >.top >.correspondents',
                 transforms: {
                     set: (data) => new CallCorrespondent(data, this.id).html,
-                    get: html => html.widgetObject.data
+                    get: html => html.widgetObject.correspondent
                 },
                 sticky: true,
             }, 'correspondents'

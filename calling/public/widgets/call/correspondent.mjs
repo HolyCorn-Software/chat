@@ -113,6 +113,10 @@ export default class CallCorrespondent extends Widget {
                 return
             }
 
+            aborter.signal.addEventListener('abort', () => {
+                connection.close()
+            }, { once: true })
+
 
             // Determine if we're the main peer at the call (Are we the ones to create offers?)
 
@@ -132,8 +136,6 @@ export default class CallCorrespondent extends Widget {
                 ]
             });
 
-
-            console.log(`peer connection is `, window.peerRTC = connection)
 
             localStream.getTracks().forEach(track => {
                 connection.addTrack(track, localStream)
@@ -162,16 +164,20 @@ export default class CallCorrespondent extends Widget {
                     }
                 );
                 lastValues.offer = offer.sdp
-                console.log(`Just created a new offer`)
+                // console.log(`Just created a new offer`)
             }
 
             const reInitiate = () => {
-                if (connection.connectionState != 'connected' && connection.connectionState != 'connecting') {
-                    createOffer()
+                if ((connection.connectionState != 'connected' && connection.connectionState != 'connecting') || connection.signalingState != 'stable') {
+                    createOffer().catch(e => {
+                        if (/call.*not.*found/gi.test(e)) {
+                            aborter.abort()
+                        }
+                    })
                 }
             }
 
-            const createAnswer = async () => {
+            const createAnswer = new DelayedAction(async () => {
 
                 const sdpIn = handle.sdps[this.correspondent.profile.id];
 
@@ -188,6 +194,10 @@ export default class CallCorrespondent extends Widget {
                 );
 
                 const answer = await connection.createAnswer()
+                lastValues.answer = answer.sdp
+                lastValues.offer = sdpIn.offer
+                lastValues.offerTime = sdpIn.offerTime
+                lastValues.answerTime = sdpIn.answerTime
 
                 await connection.setLocalDescription(answer)
 
@@ -198,12 +208,8 @@ export default class CallCorrespondent extends Widget {
                     }
                 )
 
-                lastValues.answer = answer.sdp
-                lastValues.offer = sdpIn.offer
-                lastValues.offerTime = sdpIn.offerTime
-                lastValues.answerTime = sdpIn.answerTime
-                console.log(`Just created an answer`)
-            }
+                // console.log(`Just created an answer`)
+            }, 500)
 
             connection.addEventListener('icecandidate', (event) => {
 
@@ -214,55 +220,88 @@ export default class CallCorrespondent extends Widget {
 
             }, { signal: aborter.signal });
 
-            handle.events.addEventListener('ice-candidate', ({ detail: candidate }) => {
-                console.log(`The remotely-triggered Ice candidate: `, candidate)
-                connection.addIceCandidate(candidate)
-            })
+            handle.events.addEventListener('ice-candidate', async ({ detail: candidate }) => {
+
+                if (connection.signalingState == 'closed') {
+                    return;
+                }
+
+                // console.log(`The remotely-triggered Ice candidate: `, candidate)
+                await new Promise((resolve) => {
+                    const done = () => {
+                        resolve();
+                        clearInterval(interval)
+                    }
+                    const check = () => {
+                        if (connection.remoteDescription || aborter.signal.aborted) {
+                            done()
+                            return true;
+                        }
+                    }
+                    let interval;
+                    if (!check()) {
+                        interval = setInterval(check, 100)
+                    }
+                })
+                connection.addIceCandidate(candidate).catch(() => undefined)
+            }, { signal: aborter.signal })
 
 
-            handle.events.addEventListener('sdp-change', async () => {
+            let createAnswerPromise;
+            handle.events.addEventListener('sdp-change', new DelayedAction(async () => {
+
+                if (connection.connectionState == 'connected' || connection.connectionState == 'failed' || connection.signalingState == 'closed') {
+                    return;
+                }
 
                 if (isMain) {
                     const nwSDP = handle.sdps[this.correspondent.profile.id];
                     if (nwSDP?.answer && (nwSDP.answerTime > nwSDP.offerTime) && (nwSDP.answerTime > (lastValues.answerTime || 0))) {
+                        lastValues.answerTime = nwSDP.answerTime
+                        lastValues.answer = nwSDP.answer
                         await connection.setRemoteDescription({
                             type: 'answer',
                             sdp: nwSDP.answer
                         })
-                        lastValues.answerTime = nwSDP.answerTime
-                        lastValues.answer = nwSDP.answer
-                        console.log(`Just accepted answer`);
-
-                        // TODO: If connection state doesn't change in 10s, trickle ICE
-                        setTimeout(reInitiate, 10_000)
+                        // console.log(`Just accepted answer`);
                     }
                 } else {
                     const nwSDP = handle.sdps[this.correspondent.profile.id]
+                    try {
+                        await createAnswerPromise
+                    } catch { }
 
                     if (nwSDP.offer && (nwSDP.offerTime > (lastValues.offerTime || 0)) && (nwSDP.offerTime > nwSDP.answerTime)) {
-                        await createAnswer()
+
+                        await (createAnswerPromise = createAnswer())
                     }
 
                 }
 
-            }, { signal: aborter.signal })
+            }, 250, 1500), { signal: aborter.signal })
 
 
 
             if (isMain) {
-
+                let interval;
                 createOffer()
-
-                setInterval(reInitiate, 5_000)
-                setTimeout(reInitiate, 1000)
+                setTimeout(() => interval = setInterval(reInitiate, 5_000), 2000)
+                aborter.signal.addEventListener('abort', () => clearInterval(interval), { once: true })
             }
 
             connection.addEventListener('connectionstatechange', () => {
 
-                if (connection.connectionState == 'failed') {
+                if ((connection.connectionState != 'connected') && (connection.connectionState != 'connecting') && (connection.connectionState != 'new')) {
+
+                    if (handle.members.rejected.findIndex(x => x == this.correspondent.profile.id) != -1) {
+                        // In this case, the correspondent left the call.
+                        return console.log(`The correspondent left the call`)
+                    }
+                    console.log(`Connection failed. Taking everything from the start... call state is ${connection.connectionState}`)
                     aborter.abort()
-                    console.log(`Connetion failed. Taking everything from the start...`)
-                    setTimeout(() => setupStreaming(), 1000)
+                    setTimeout(() => {
+                        setupStreaming()
+                    }, 2000)
                     return
                 }
 

@@ -1,5 +1,9 @@
 .
 
-Improved call connectivity, by providing infrastructure for exchanging ICE candidates.
+Improved call connectivity.
 
-Fixed minor bug related to call reconnection.
+Reduced call data propagation delays.
+
+Added logic to detect end of call.
+
+Improved robustness of frontend chat-messaging widget.

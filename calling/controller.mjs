@@ -49,11 +49,12 @@ export default class ChatCallingController {
      * This method places a call
      * @param {object} param0 
      * @param {string} param0.userid
+     * @param {FacultyPublicJSONRPC} param0.$client
      * @param {string} param0.chat
      * @param {telep.chat.calling.CallType} param0.type
      * @returns {Promise<string>}
      */
-    async placeCallFromChat({ userid, chat, type }) {
+    async placeCallFromChat({ userid, $client, chat, type }) {
         const chatInfo = await this[controllers].management.getChatInfoSecure(
             {
                 id: chat,
@@ -74,7 +75,7 @@ export default class ChatCallingController {
             }
         );
 
-        const id = await this[manager].createCall({ caller: userid, type, chat: chatInfo })
+        const id = await this[manager].createCall({ caller: userid, $client, type, chat: chatInfo })
 
         return id
     }
@@ -116,13 +117,14 @@ export default class ChatCallingController {
      * This method indicates to everyone, that the user is part of the call
      * @param {object} param0 
      * @param {string} param0.id
+     * @param {FacultyPublicJSONRPC} param0.$client
      * @param {string} param0.userid
      * 
      * @returns {Promise<void>}
      */
-    async connect({ userid, id }) {
+    async connect({ userid, $client, id }) {
 
-        await this[manager].connect({ member: userid, id })
+        await this[manager].connect({ member: userid, $client, id })
 
     }
 

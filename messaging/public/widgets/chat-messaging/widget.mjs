@@ -398,6 +398,9 @@ export default class ChatMessaging extends Widget {
             this[onMessage] = new DelayedAction(
                 () => {
                     const lastMessage = this.messages.at(-1)
+                    if (!lastMessage) {
+                        return;
+                    }
                     // TODO: Place the error in the UI
                     this[load]({ chatID: this.chat.id, lastMessage: lastMessage.id }).catch(e => handle(e))
                 },

@@ -76,8 +76,8 @@ export default class CallHandle {
      */
     async exit() {
         this.destroy()
-        hcRpc.chat.calling.leaveCall({ id: this.data.id })
         this[ended] = true
+        hcRpc.chat.calling.leaveCall({ id: this.data.id }).catch(() => undefined)
     }
     /**
      * @readonly

@@ -43,3 +43,7 @@
     width: 100%;
     height: 100%;
 }
+
+.hc-telep-chat-call-widget-correspondent.voice-only>.container>.main>.view>video {
+    opacity: 0;
+}

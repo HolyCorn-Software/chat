@@ -86,6 +86,8 @@ export default class CallCorrespondent extends Widget {
         const videoHTML = hc.spawn({ tag: 'video', attributes: { autoplay: true } })
         this.html.$('.container >.main >.view').appendChild(videoHTML)
 
+        this.html.classList.toggle('voice-only', handle.type === 'voice')
+
         const lastValues = {
             offer: undefined,
             answer: undefined,

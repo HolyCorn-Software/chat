@@ -134,6 +134,13 @@ export default class CallCorrespondent extends Widget {
                             'stun:stun3.l.google.com:19302',
                             'stun:stun4.l.google.com:19302'
                         ],
+                    },
+                    {
+                        urls: [
+                            'relay1.expressturn.com:3478'
+                        ],
+                        username: 'efPU52K4SLOQ34W2QY',
+                        credential: '1TJPNFxHKXrZfelz',
                     }
                 ]
             });

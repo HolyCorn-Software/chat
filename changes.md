@@ -1,3 +1,3 @@
 .
 
-Improved the calling UI.
+Added test TURN server parameters.

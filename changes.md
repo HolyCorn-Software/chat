@@ -1,3 +1,3 @@
 .
 
-Added test TURN server parameters.
+Fixed minor bug.

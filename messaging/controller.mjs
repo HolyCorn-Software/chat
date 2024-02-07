@@ -82,11 +82,11 @@ export default class MessagingController {
             aggregation: {
                 timeout: 1000,
             },
+            expectedClientLen: chatData.recipients.length - 1,
             exclude: [msg.userid],
             retries: 2,
             timeout: 5000,
             retryDelay: 250,
-            precallWait: 500
         })
 
 
@@ -214,9 +214,10 @@ export default class MessagingController {
             }),
             {
                 aggregation: {
-                    timeout: 3000,
+                    timeout: 2000,
                 },
                 exclude: [userid],
+                expectedClientLen: chatData.recipients.length - 1,
                 timeout: 5000,
                 retries: 2,
                 retryDelay: 500,

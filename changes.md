@@ -1,3 +1,3 @@
 .
 
-Fixed minor bug.
+Improved efficiency of event propagation during messaging.

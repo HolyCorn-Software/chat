@@ -38,7 +38,11 @@ export default class ChatPublicMethods extends FacultyPublicMethods {
 
             try {
                 const chat = await this[controller].management.getChatInfoSecure({ id: data.id });
-                this[controller].events.inform(chat.recipients, new CustomEvent('telep-chat-new-chat', { detail: { chat: await this[internal].getChatMetaData(chat) } }))
+                await Promise.all(
+                    chat.recipients.map(async recipient => {
+                        await this[controller].events.inform([recipient], new CustomEvent('telep-chat-new-chat', { detail: { chat: await this[internal].getChatMetaData(chat, recipient) } }))
+                    })
+                )
             } catch (e) {
                 console.warn(`Failed to route chat-changed event, because `, e)
             }

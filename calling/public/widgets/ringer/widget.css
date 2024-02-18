@@ -7,8 +7,8 @@
 */
 
 .hc-telep-chat-call-ringer-ui>.container>.main {
-    --color1: var(--theme-purple-color);
-    --color2: var(--theme-blue-color, rgb(78, 23, 207));
+    --color1: var(--theme-purple-color, var(--theme-color));
+    --color2: var(--theme-blue-color, var(--accent-color, rgb(78, 23, 207)));
 }
 
 .hc-telep-chat-call-ringer-content>.container {
@@ -16,7 +16,7 @@
     flex-direction: column;
     padding: 1em;
     border-radius: 1em;
-    background-color: var(--color2);
+    background-color: var(--color1);
 }
 
 .hc-telep-chat-call-ringer-content.destroyed>.container {

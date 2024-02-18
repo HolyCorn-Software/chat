@@ -11,7 +11,7 @@
     gap: 1.95em;
     padding: 1.5em;
     border-radius: 1em;
-    background-color: var(--accent-color);
+    background-color: var(--theme-color, var(--theme-accent-color, rgb(8, 106, 172)));
     font-family: comfortaa;
     width: clamp(250px, 90vw - 4em, 1050px);
 }

@@ -1,0 +1,41 @@
+/*  
+    Copyright 2024 HolyCorn Software
+    The Chat Faculty
+    This stylesheet is part of the chat profile-detail widget, where it determines the layout of the view where one can see 
+    detailed info about a chat.
+*/
+
+
+
+.hc-telep-chat-widget-profile-detail>.container {
+    display: flex;
+    flex-direction: column;
+    gap: 2em;
+    overflow-y: auto;
+    padding-bottom: 1em;
+}
+
+.hc-telep-chat-widget-profile-detail>.container>.main {
+    display: flex;
+    flex-direction: column;
+}
+
+.hc-telep-chat-widget-profile-detail>.container>.main>.profile {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75em;
+}
+
+.hc-telep-chat-widget-profile-detail>.container>.main>.profile>.label {
+    font-size: 1.75em;
+    font-weight: bold;
+}
+
+.hc-telep-chat-widget-profile-detail>.container>.main>.profile>.img {
+    width: 17em;
+    height: 10em;
+    position: relative;
+    border-radius: 2em;
+    box-shadow: 0px 0px 0.125em rgb(218, 218, 218);
+    background-size: cover;
+}

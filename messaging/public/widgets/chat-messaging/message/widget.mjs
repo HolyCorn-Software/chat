@@ -74,7 +74,7 @@ export default class ChatMessage extends Widget {
 
         const extender = new EventBasedExtender(
             {
-                autoRunScope: 'telep-chat-messaging-extensions',
+                runScope: 'telep-chat-messaging-extensions',
                 eventName: 'telep-chat-messaging-create-custom-view',
             }
         )

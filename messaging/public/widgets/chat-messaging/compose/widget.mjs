@@ -50,7 +50,7 @@ export default class ChatMessagingCompose extends Widget {
 
         this.extender = new EventBasedExtender(
             {
-                autoRunScope: 'telep-chat-messaging-extensions',
+                runScope: 'telep-chat-messaging-extensions',
                 eventName: 'telep-chat-messaging-extend',
             }
         );

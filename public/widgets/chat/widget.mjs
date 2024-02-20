@@ -4,6 +4,7 @@
  * This widget allows a user to interact with a chat
  */
 
+import ChatProfileDetail from "./detail/widget.mjs";
 import CallPopup from "/$/chat/calling/static/widgets/call/popup.mjs";
 import ChatMessaging from "/$/chat/messaging/static/widgets/chat-messaging/widget.mjs";
 import hcRpc from "/$/system/static/comm/rpc/aggregate-rpc.mjs";
@@ -49,6 +50,27 @@ export default class ChatWidget extends Widget {
                 `
             }
         );
+
+        // For the ability to tap the chat profile, and get more info...
+        /** @type {ChatProfileDetail} */
+        let details;
+        this.html.$(':scope >.container >.action-bar >.main >.left >.profile-image').addEventListener('click', () => {
+            this.html.dispatchEvent(new WidgetEvent('backforth-goto', { detail: { title: this.chat.label, view: (details ||= new ChatProfileDetail(this.chat)).html } }))
+
+            details.destroySignal.addEventListener('abort', () => {
+                details = undefined;
+            }, { once: true })
+
+            let destroyTimeout;
+
+            clearTimeout(destroyTimeout)
+            details.html.addEventListener('hc-disconnected-from-dom', () => {
+                console.log(`details removed from the DOM`)
+                destroyTimeout = setTimeout(() => details.destroy(), 15_000)
+            }, { once: true, })
+
+
+        }, { signal: this.destroySignal })
 
         this.widgetProperty(
             {

@@ -137,7 +137,7 @@ export default class CallCorrespondent extends Widget {
                     },
                     {
                         urls: [
-                            'turn:relay1.expressturn.com:3478'
+                            `turn:${window.location.hostname}:3478`
                         ],
                         username: 'efPU52K4SLOQ34W2QY',
                         credential: '1TJPNFxHKXrZfelz',
@@ -307,7 +307,7 @@ export default class CallCorrespondent extends Widget {
                         return console.log(`The correspondent left the call`)
                     }
                     console.log(`Connection failed. NOT Taking everything from the start... call state is ${connection.connectionState}`)
-                    if (true) return;
+
                     aborter.abort()
                     setTimeout(() => {
                         setupStreaming()

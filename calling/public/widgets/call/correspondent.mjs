@@ -137,10 +137,10 @@ export default class CallCorrespondent extends Widget {
                     },
                     {
                         urls: [
-                            `turn:${window.location.hostname}:3478`
+                            'turn:relay1.expressturn.com:3478'
                         ],
-                        username: 'user',
-                        credential: 'user',
+                        username: 'efPU52K4SLOQ34W2QY',
+                        credential: '1TJPNFxHKXrZfelz',
                     }
                 ]
             });

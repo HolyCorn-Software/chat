@@ -7,6 +7,7 @@
 import ChatEventsController from "../events/controller.mjs"
 import ChatManagement from "../management/controller.mjs"
 import CallManager from "./manager/manager.mjs"
+import turn from "./relay.mjs"
 
 
 const manager = Symbol()
@@ -30,6 +31,8 @@ export default class ChatCallingController {
         );
 
         this[controllers] = _controllers
+
+        turn.start()
     }
 
     async hello() {

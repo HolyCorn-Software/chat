@@ -1,3 +1,3 @@
 .
 
-Fixing a call connection bug, with in-house TURN (relay) server.
+Fixing a call connection bug, by using on-server call relay (node-turn).

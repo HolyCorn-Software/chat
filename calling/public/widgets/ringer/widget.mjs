@@ -126,7 +126,9 @@ class CallRingerContent extends Widget {
                     this.html.$('.container >.main >.button.reject').addEventListener('click', () => {
                         this.destroy()
                         hcRpc.chat.calling.leaveCall({ id: this.call })
-                    })
+                    });
+
+                    // TODO: Now, play the ringtone, and vibration, untill the call is picked up.
 
                 }
             )()

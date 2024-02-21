@@ -1,3 +1,3 @@
 .
 
-Improved code quality.
+Improved ringer UI, and UX.

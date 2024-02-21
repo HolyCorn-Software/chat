@@ -16,6 +16,8 @@ export const internal = Symbol()
 
 const ended = Symbol()
 
+const ringer = Symbol()
+
 
 
 /**
@@ -68,7 +70,17 @@ export default class CallHandle {
      * This method can be called to make the ringing UI display locally
      */
     localRing() {
-        new CallRingerUI(this.data.id).show()
+        if (this[ringer]) return
+
+        this[ringer] = new CallRingerUI(this.data.id);
+
+        this[ringer].destroySignal.addEventListener('abort', () => { delete this[ringer] }, { once: true })
+
+        this[aborter].signal.addEventListener('abort', () => {
+            this[ringer].dismiss(0)
+        })
+
+        this[ringer].show()
     }
 
     /**

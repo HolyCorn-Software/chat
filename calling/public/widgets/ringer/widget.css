@@ -11,6 +11,10 @@
     --color2: var(--theme-blue-color, var(--accent-color, rgb(78, 23, 207)));
 }
 
+.hc-telep-chat-call-ringer-ui.hc-slide-in>.container>.main {
+    color: black;
+}
+
 .hc-telep-chat-call-ringer-content>.container {
     display: flex;
     flex-direction: column;

@@ -13,6 +13,8 @@ const turn = new nodeTurn({
     },
     authMech: 'none',
     debugLevel: "ALL",
+    listeningIps: ['0.0.0.0', '34.125.19.218']
+
 });
 
 

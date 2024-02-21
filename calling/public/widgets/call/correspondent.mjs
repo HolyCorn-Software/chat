@@ -218,7 +218,7 @@ export default class CallCorrespondent extends Widget {
 
             connection.addEventListener('icecandidate', (event) => {
 
-                if (event.candidate) {
+                if (event.candidate && event.candidate.protocol == 'udp') {
                     handle.sendIceCandidate({ member: this.correspondent.profile.id, candidate: event.candidate })
                 }
 

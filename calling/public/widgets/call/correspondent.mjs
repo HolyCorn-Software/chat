@@ -137,7 +137,7 @@ export default class CallCorrespondent extends Widget {
                     // },
                     {
                         urls: [
-                            `turn:${window.location.hostname}:3478`
+                            `turn:${window.location.hostname}:3478`,
                             `stun:${window.location.hostname}:3478`
                         ],
                         username: 'user',

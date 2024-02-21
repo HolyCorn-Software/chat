@@ -1,3 +1,3 @@
 .
 
-Improved ringer UI, and UX.
+Investigating connection bug.

@@ -126,18 +126,19 @@ export default class CallCorrespondent extends Widget {
 
             const connection = new RTCPeerConnection({
                 iceServers: [
-                    {
-                        urls: [
-                            'stun:stun.l.google.com:19302',
-                            'stun:stun1.l.google.com:19302',
-                            'stun:stun2.l.google.com:19302',
-                            'stun:stun3.l.google.com:19302',
-                            'stun:stun4.l.google.com:19302'
-                        ],
-                    },
+                    // {
+                    //     urls: [
+                    //         'stun:stun.l.google.com:19302',
+                    //         'stun:stun1.l.google.com:19302',
+                    //         'stun:stun2.l.google.com:19302',
+                    //         'stun:stun3.l.google.com:19302',
+                    //         'stun:stun4.l.google.com:19302'
+                    //     ],
+                    // },
                     {
                         urls: [
                             `turn:${window.location.hostname}:3478`
+                            `stun:${window.location.hostname}:3478`
                         ],
                         username: 'user',
                         credential: 'user',

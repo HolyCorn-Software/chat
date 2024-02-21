@@ -11,8 +11,8 @@ const turn = new nodeTurn({
     credentials: {
         user: 'user'
     },
-    authMech: 'long-term',
-    debugLevel: "ERROR",
+    authMech: 'none',
+    debugLevel: "ALL",
 });
 
 

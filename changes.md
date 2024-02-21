@@ -1,3 +1,3 @@
 .
 
-Fixing a call connection bug, by using in-house TURN server.
+Fixing a call connection bug, with in-house TURN server.

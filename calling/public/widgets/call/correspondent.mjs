@@ -306,7 +306,8 @@ export default class CallCorrespondent extends Widget {
                         // In this case, the correspondent left the call.
                         return console.log(`The correspondent left the call`)
                     }
-                    console.log(`Connection failed. Taking everything from the start... call state is ${connection.connectionState}`)
+                    console.log(`Connection failed. NOT Taking everything from the start... call state is ${connection.connectionState}`)
+                    if (true) return;
                     aborter.abort()
                     setTimeout(() => {
                         setupStreaming()

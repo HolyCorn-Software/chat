@@ -1,3 +1,3 @@
 .
 
-Fixing a call connection bug, by using on-server call relay (node-turn).
+Revoking feature of using in-app TURN relay server.

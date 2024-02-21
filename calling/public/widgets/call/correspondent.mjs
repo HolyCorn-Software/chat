@@ -138,7 +138,7 @@ export default class CallCorrespondent extends Widget {
                     {
                         urls: [
                             `turn:${window.location.hostname}:3478`,
-                            // `stun:${window.location.hostname}:3478`
+                            `stun:${window.location.hostname}:3478`
                         ],
                         username: 'user',
                         credential: 'user',
@@ -307,7 +307,7 @@ export default class CallCorrespondent extends Widget {
                         // In this case, the correspondent left the call.
                         return console.log(`The correspondent left the call`)
                     }
-                    
+
                     console.log(`Connection failed. Taking everything from the start... call state is ${connection.connectionState}`)
                     aborter.abort()
                     setTimeout(() => {

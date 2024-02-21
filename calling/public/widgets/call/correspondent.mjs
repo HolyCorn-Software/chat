@@ -301,17 +301,18 @@ export default class CallCorrespondent extends Widget {
 
             connection.addEventListener('connectionstatechange', () => {
 
-                if ((connection.connectionState != 'connected') && (connection.connectionState != 'connecting') && (connection.connectionState != 'new')) {
+                if ((connection.connectionState == 'closed') || (connection.connectionState == 'failed')) {
 
                     if (handle.members.rejected.findIndex(x => x == this.correspondent.profile.id) != -1) {
                         // In this case, the correspondent left the call.
                         return console.log(`The correspondent left the call`)
                     }
+                    
                     console.log(`Connection failed. Taking everything from the start... call state is ${connection.connectionState}`)
                     aborter.abort()
                     setTimeout(() => {
                         setupStreaming()
-                    }, 2000)
+                    }, 1000)
                     return
                 }
 

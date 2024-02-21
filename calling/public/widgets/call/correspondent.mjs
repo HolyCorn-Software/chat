@@ -140,7 +140,7 @@ export default class CallCorrespondent extends Widget {
                             `turn:${window.location.hostname}:3478`
                         ],
                         username: '1708571567:user',
-                        credential: 'x8EydxHMgX7yQuxpbGksENcvo/w=',
+                        credential: 'user',
                     }
                 ]
             });

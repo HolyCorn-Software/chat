@@ -2,6 +2,15 @@
  * Copyright 2023 HolyCorn Software
  * The Tele-Epilepsy Project
  * This module deals with the backend aspects of making, and managing calls, be it voice, or video
+ * 
+ * _ _ _ _ _ _ _ 
+ *    NOTE
+ * - - - - - - - 
+ * Install coturn on host machine, and configure annonymous access (no-auth)
+ * 
+ * -----------
+ * 
+ * 
  */
 
 import ChatEventsController from "../events/controller.mjs"

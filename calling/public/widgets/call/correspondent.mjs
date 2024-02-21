@@ -126,17 +126,21 @@ export default class CallCorrespondent extends Widget {
 
             const connection = new RTCPeerConnection({
                 iceServers: [
-                    // {
-                    //     urls: [
-                    //         'stun:stun.l.google.com:19302',
-                    //     ],
-                    // },
                     {
                         urls: [
-                            `turn:${window.location.hostname}`
+                            'stun:stun.l.google.com:19302',
+                            'stun:stun1.l.google.com:19302',
+                            'stun:stun2.l.google.com:19302',
+                            'stun:stun3.l.google.com:19302',
+                            'stun:stun4.l.google.com:19302'
                         ],
-                        username: 'user',
-                        credential: 'user',
+                    },
+                    {
+                        urls: [
+                            'turn:relay1.expressturn.com:3478'
+                        ],
+                        username: 'efPU52K4SLOQ34W2QY',
+                        credential: '1TJPNFxHKXrZfelz',
                     }
                 ]
             });
@@ -218,7 +222,7 @@ export default class CallCorrespondent extends Widget {
 
             connection.addEventListener('icecandidate', (event) => {
 
-                if (event.candidate && event.candidate.protocol == 'udp') {
+                if (event.candidate) {
                     handle.sendIceCandidate({ member: this.correspondent.profile.id, candidate: event.candidate })
                 }
 
@@ -303,7 +307,6 @@ export default class CallCorrespondent extends Widget {
                         return console.log(`The correspondent left the call`)
                     }
                     console.log(`Connection failed. Taking everything from the start... call state is ${connection.connectionState}`)
-
                     aborter.abort()
                     setTimeout(() => {
                         setupStreaming()

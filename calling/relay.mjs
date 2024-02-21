@@ -12,7 +12,7 @@ const turn = new nodeTurn({
         user: 'user'
     },
     authMech: 'long-term',
-    debugLevel: "DEBUG",
+    debugLevel: "ERROR",
 });
 
 

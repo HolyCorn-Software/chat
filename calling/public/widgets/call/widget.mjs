@@ -62,6 +62,29 @@ export default class CallWidget extends Widget {
         /** @type {telep.chat.management.Chat} */ this.chat
         /** @type {telep.chat.calling.CallType} */ this.type
 
+        /** @type {boolean} */ this.compact
+        this.htmlProperty(undefined, 'compact', 'class', () => {
+
+            const doIt = () => {
+                this.html.style.setProperty('position', this.compact ? 'fixed' : 'relative')
+            }
+
+            doIt()
+
+            setTimeout(doIt, this.compact == true ? 0 : 500)
+        });
+
+        hc.watchToCSS(
+            {
+                source: this.html,
+                target: this.html,
+                watch: {
+                    dimension: 'width'
+                },
+                apply: '--content-width'
+            }
+        )
+
 
         Object.assign(this, arguments[0])
 

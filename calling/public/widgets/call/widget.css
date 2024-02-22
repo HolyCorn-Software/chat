@@ -13,7 +13,7 @@
     border-radius: 1em;
     background-color: var(--theme-color, var(--theme-accent-color, rgb(8, 106, 172)));
     font-family: comfortaa;
-    width: clamp(250px, 90vw - 4em, 1050px);
+    width: clamp(250px, 90vw - 4em, 700px);
 }
 
 .hc-telep-chat-call-widget>.container>.top {
@@ -25,7 +25,8 @@
 .hc-telep-chat-call-widget>.container>.top>.correspondents {
     display: flex;
     gap: 3.5em;
-    justify-content: center;
+    justify-content: space-between;
+    align-items: center;
     flex-wrap: wrap;
     overflow-y: auto;
     max-height: calc(80vh - 5em);
@@ -53,7 +54,7 @@
 }
 
 .hc-telep-chat-call-widget>.container>.bottom>.call-end {
-    width: 100%;
+    width: calc(100% - 1.25em);
     padding: 0.75em;
     background-color: black;
     color: white;
@@ -116,15 +117,22 @@
 
 
 /** When the call widget is in compact mode */
-.hc-telep-chat-call-widget.compact {
+
+body>.hc-telep-chat-call-widget.compact {
     position: fixed;
+}
+
+.hc-telep-chat-call-widget.compact {
     top: 1em;
     z-index: 3;
     display: flex;
     justify-content: center;
-    width: 100%;
+    margin: auto;
     opacity: 0.6;
+    margin-left: calc(50vw - var(--content-width) / 2);
+    transition: 0s 0s;
 }
+
 
 .hc-telep-chat-call-widget.compact:hover {
     opacity: 1;
@@ -134,5 +142,51 @@
 .hc-telep-chat-call-widget.compact>.container {
     gap: 0.5em;
     box-shadow: 0px 0px 0.125em rgb(230, 228, 228);
-    padding: 0.75em;
+    padding: 1em;
+    display: inline-flex;
+    max-width: 18em;
+    pointer-events: none;
+}
+
+.hc-telep-chat-call-widget.compact>.container>.top>.correspondents {
+    gap: 0.75em;
+    display: inline-flex;
+    overflow: hidden;
+}
+
+.hc-telep-chat-call-widget.compact>.container>.top>.correspondents>.hc-telep-chat-call-widget-correspondent>.container {
+    min-width: 0px;
+}
+
+.hc-telep-chat-call-widget.compact>.container>.top>.correspondents>.hc-telep-chat-call-widget-correspondent>.container>.main>.banner {
+    padding: 0em;
+    background-color: transparent;
+
+}
+
+
+.hc-telep-chat-call-widget.compact>.container>.top>.correspondents>.hc-telep-chat-call-widget-correspondent>.container>.main>.bottom.banner {
+    display: none;
+}
+
+.hc-telep-chat-call-widget.compact>.container>.top>.correspondents>.hc-telep-chat-call-widget-correspondent>.container>.main>.view {
+    display: none;
+}
+
+.hc-telep-chat-call-widget.compact>.container>.top>.correspondents>.hc-telep-chat-call-widget-correspondent>.container>.main>.banner .hc-hcts-modernuser-inline-profile>.container>.main>.label {
+    display: none;
+}
+
+.hc-telep-chat-call-widget.compact>.container>.bottom>.call-end {
+    padding: 0px;
+    background-color: transparent;
+}
+
+.hc-telep-chat-call-widget.compact>.container>.bottom>.call-end>.call-end-main {
+    display: none;
+}
+
+.hc-telep-chat-call-widget.compact>.container>.bottom>.call-end>.call-info>.call-time {
+    height: 0px;
+    background-color: transparent;
 }

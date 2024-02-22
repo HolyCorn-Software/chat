@@ -20,7 +20,8 @@ export default class CallPopup extends PopupMenu {
      * @param {ConstructorParameters<typeof CallWidget>['0']} args 
      */
     constructor(args) {
-        const main = new CallWidget(args);
+        /** @type {CallWidget} */
+        const main = arguments[1] || new CallWidget(args);
         super(
             {
                 content: main.html
@@ -33,13 +34,23 @@ export default class CallPopup extends PopupMenu {
 
         this.addEventListener('prehide', () => {
             if (!main.destroySignal.aborted) {
-                main.compact = true;
+
+
             }
         }, { signal: this.destroySignal })
         this.addEventListener('hide', () => {
             if (!main.destroySignal.aborted) {
                 main.html.remove()
-                document.body.prepend(main.html)
+
+                setTimeout(() => {
+                    main.compact = true;
+                    document.body.prepend(main.html)
+                }, 500)
+
+                main.html.addEventListener('click', () => {
+                    main.compact = false;
+                    new CallPopup(undefined, main).show()
+                }, { once: true })
             }
         }, { signal: this.destroySignal })
     }

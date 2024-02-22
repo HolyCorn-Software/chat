@@ -16,7 +16,15 @@ export default class CallRingerUI extends SlideIn {
     constructor(call) {
         super();
 
-        this.content = new CallRingerContent({ call })
+        this.content = new CallRingerContent({ call }).html
+
+        this.content.widgetObject.destroySignal.addEventListener('abort', () => {
+            this.destroy()
+        }, { once: true })
+
+        this.destroySignal.addEventListener('abort', () => {
+            this.content?.widgetObject.destroy()
+        }, { once: true })
 
         this.html.classList.add(CallRingerUI.classList)
 

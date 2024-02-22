@@ -10,6 +10,8 @@ import hcRpc from "/$/system/static/comm/rpc/aggregate-rpc.mjs";
 import { handle as handleError } from "/$/system/static/errors/error.mjs";
 import DelayedAction from "/$/system/static/html-hc/lib/util/delayed-action/action.mjs";
 import { Widget, hc } from "/$/system/static/html-hc/lib/widget/index.mjs";
+import { AnimatedTick } from "/$/system/static/html-hc/widgets/animated-tick/tick.js";
+import Spinner from "/$/system/static/html-hc/widgets/infinite-spinner/widget.mjs";
 
 
 
@@ -34,6 +36,10 @@ export default class CallCorrespondent extends Widget {
                         <div class='main'>
                             <div class='top banner'>
                                 <div class='profile'></div>
+                                <div class='details'>
+                                    <div class='connection-status'></div>
+                                    <div class='padding'></div>
+                                </div>
                             </div>
 
                             <div class='view'></div>
@@ -70,6 +76,55 @@ export default class CallCorrespondent extends Widget {
             await this.joinCall()
 
         });
+
+        /** @type {"connecting"|"connected"} */ this.connectionStatus;
+
+
+        let connectionStatus;
+        const audioEffects = {
+            /** @type {HTMLAudioElement} */
+            connecting: undefined,
+            /** @type {HTMLAudioElement} */
+            connected: undefined
+        }
+        Reflect.defineProperty(this, 'connectionStatus', {
+            /**
+             * 
+             * @param { CallCorrespondent['connectionStatus']} status 
+             */
+            set: (status) => {
+                if (connectionStatus == status) {
+                    return;
+                }
+                const target = this.html.$(':scope >.container >.main >.banner.top >.details >.connection-status')
+                /** @type {Spinner} */
+                const spinner = target.$(`.${Spinner.classList.join('.')}`)?.widgetObject;
+                spinner?.detach()
+
+                target.querySelectorAll(':scope >*').forEach(item => item.remove());
+
+                switch (status) {
+                    case 'connecting':
+                        const spinner = new Spinner();
+                        target.appendChild(spinner.html)
+                        spinner.start()
+                        audioEffects.connecting ||= new Audio(new URL('./res/connecting.mp3', import.meta.url).href);
+                        audioEffects.connecting.loop = true
+                        audioEffects.connecting.play()
+                        break;
+                    default:
+                        const tick = new AnimatedTick({ activated: true })
+                        target.appendChild(tick.html)
+                        tick.animate().then(() => setTimeout(() => tick.destroy(), 2000))
+                        audioEffects.connecting?.pause()
+                        audioEffects.connected ||= new Audio(new URL('./res/connected.mp3', import.meta.url).href);
+                        audioEffects.connected.currentTime = 0;
+                        audioEffects.connected.play()
+                        break;
+                }
+                connectionStatus = status
+            }
+        })
 
         this.correspondent = correspondent
 
@@ -119,6 +174,8 @@ export default class CallCorrespondent extends Widget {
                 connection.close()
             }, { once: true })
 
+            this.connectionStatus = 'connecting'
+
 
             // Determine if we're the main peer at the call (Are we the ones to create offers?)
 
@@ -126,15 +183,6 @@ export default class CallCorrespondent extends Widget {
 
             const connection = new RTCPeerConnection({
                 iceServers: [
-                    // {
-                    //     urls: [
-                    //         'stun:stun.l.google.com:19302',
-                    //         'stun:stun1.l.google.com:19302',
-                    //         'stun:stun2.l.google.com:19302',
-                    //         'stun:stun3.l.google.com:19302',
-                    //         'stun:stun4.l.google.com:19302'
-                    //     ],
-                    // },
                     {
                         urls: [
                             `turn:${window.location.hostname}:3478`,
@@ -142,7 +190,16 @@ export default class CallCorrespondent extends Widget {
                         ],
                         username: 'user',
                         credential: 'user',
-                    }
+                    },
+                    {
+                        urls: [
+                            'stun:stun.l.google.com:19302',
+                            'stun:stun1.l.google.com:19302',
+                            'stun:stun2.l.google.com:19302',
+                            'stun:stun3.l.google.com:19302',
+                            'stun:stun4.l.google.com:19302'
+                        ],
+                    },
                 ]
             });
 
@@ -218,7 +275,6 @@ export default class CallCorrespondent extends Widget {
                     }
                 )
 
-                // console.log(`Just created an answer`)
             }, 500)
 
             connection.addEventListener('icecandidate', (event) => {
@@ -301,7 +357,16 @@ export default class CallCorrespondent extends Widget {
 
             connection.addEventListener('connectionstatechange', () => {
 
-                if ((connection.connectionState == 'closed') || (connection.connectionState == 'failed')) {
+                switch (connection.connectionState) {
+                    case 'connected':
+                        this.connectionStatus = 'connected'
+                        break;
+                    default:
+                        this.connectionStatus = 'connecting'
+
+                }
+
+                if (connection.connectionState != 'connected' && connection.connectionState != 'connecting' && connection.connectionState != 'new') {
 
                     if (handle.members.rejected.findIndex(x => x == this.correspondent.profile.id) != -1) {
                         // In this case, the correspondent left the call.

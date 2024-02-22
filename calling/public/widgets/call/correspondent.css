@@ -9,13 +9,40 @@
     display: inline-flex;
     flex-direction: column;
     gap: 2em;
-    min-width: clamp(180px, 25vw, 25vw);
+    min-width: clamp(180px, 30vw, 30vw);
 }
 
 .hc-telep-chat-call-widget-correspondent>.container>.main {
     display: flex;
     flex-direction: column;
 }
+
+.hc-telep-chat-call-widget-correspondent.voice-only>.container>.main>.top>.details {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    justify-content: flex-end;
+    flex-grow: 1;
+}
+
+.hc-telep-chat-call-widget-correspondent.voice-only>.container>.main>.top>.details>.padding {
+    flex-grow: 0.2;
+}
+
+.hc-telep-chat-call-widget-correspondent.voice-only>.container>.main>.top>.details>.connection-status {
+    color: green;
+    min-height: 2em;
+    flex-grow: 0.8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hc-telep-chat-call-widget-correspondent.voice-only>.container>.main>.top>.details>.connection-status>.hc-infinite-spinner {
+    font-size: 0.25em;
+    --hc-spinner-color: orange;
+}
+
 
 .hc-telep-chat-call-widget-correspondent>.container>.main>.banner {
     display: flex;

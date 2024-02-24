@@ -155,7 +155,7 @@ export default class ChatCallingController {
      * @param {string} param0.userid
      */
     async getMyOngoingCalls({ userid }) {
-        return this[manager].getOngoingCallsFor({ correspondent: userid })
+        return new JSONRPC.MetaObject(this[manager].getOngoingCallsFor({ correspondent: userid }), { cache: { expiry: 5000 } })
     }
 
 }

@@ -11,9 +11,13 @@
     gap: 1.95em;
     padding: 1.5em;
     border-radius: 1em;
-    background-color: var(--theme-color, var(--theme-accent-color, rgb(8, 106, 172)));
+    --main-color: var(--theme-color, var(--theme-accent-color, rgb(8, 106, 172)));
+    background-color: var(--main-color);
+    border-bottom-right-radius: 2.5em;
+    border-bottom-left-radius: 2.5em;
     font-family: comfortaa;
     width: clamp(250px, 90vw - 4em, 700px);
+    max-height: clamp(400px, 100vh - 8em, 100vh);
 }
 
 .hc-telep-chat-call-widget>.container>.top {
@@ -29,8 +33,19 @@
     align-items: center;
     flex-wrap: wrap;
     overflow-y: auto;
-    max-height: calc(80vh - 5em);
+    max-height: calc(80vh - 10em);
 }
+
+.hc-telep-chat-call-widget>.container>.top>.correspondents:empty::before {
+    content: "Call Ended!";
+    font-size: 2em;
+    text-align: center;
+}
+
+.hc-telep-chat-call-widget>.container>.top>.correspondents:empty {
+    justify-content: center;
+}
+
 
 @media screen and (max-width: 420px) {
     .hc-telep-chat-call-widget>.container>.top>.correspondents {
@@ -53,12 +68,26 @@
     flex-direction: column;
 }
 
+.hc-telep-chat-call-widget>.container>.bottom>.controls {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 2em;
+}
+
+.hc-telep-chat-call-widget>.container>.bottom>.controls>.actions {
+    display: flex;
+    gap: 1em;
+    align-items: center;
+    justify-content: center;
+}
+
+
 .hc-telep-chat-call-widget>.container>.bottom>.call-end {
     width: calc(100% - 1.25em);
     padding: 0.75em;
     background-color: black;
     color: white;
-    border-radius: 0.25em;
+    border-radius: 2em;
     align-self: center;
     display: flex;
     justify-content: center;
@@ -88,34 +117,6 @@
     align-items: center;
 }
 
-/** The UI of a call action */
-/* 
-
-.hc-telep-chat-call-widget-action>.container>.main {
-    display: inline-flex;
-    width: 2em;
-    aspect-ratio: 1/1;
-    align-items: center;
-    justify-content: center;
-    border-radius: 100%;
-    color: currentColor;
-    padding: 0.75em;
-    background-color: white;
-    transition: 0.25s 0.125s;
-}
-
-.hc-telep-chat-call-widget-action.active>.container>.main {
-
-    background-color: rgb(85, 82, 82);
-    color: rgb(255, 255, 255);
-}
-
-.hc-telep-chat-call-widget-action>.container>.main:hover {
-    background-color: black;
-    color: white;
-} */
-
-
 /** When the call widget is in compact mode */
 
 body>.hc-telep-chat-call-widget.compact {
@@ -144,18 +145,26 @@ body>.hc-telep-chat-call-widget.compact {
     box-shadow: 0px 0px 0.125em rgb(230, 228, 228);
     padding: 1em;
     display: inline-flex;
-    max-width: 18em;
+    width: unset;
     pointer-events: none;
+    transition: 0s 0s;
+    border-bottom-right-radius: 2em;
+    border-bottom-left-radius: 2em;
 }
 
 .hc-telep-chat-call-widget.compact>.container>.top>.correspondents {
-    gap: 0.75em;
+    gap: 1em;
     display: inline-flex;
     overflow: hidden;
 }
 
+
 .hc-telep-chat-call-widget.compact>.container>.top>.correspondents>.hc-telep-chat-call-widget-correspondent>.container {
     min-width: 0px;
+}
+
+.hc-telep-chat-call-widget.compact>.container>.top>.correspondents>.hc-telep-chat-call-widget-correspondent>.container>.main>.top>.details {
+    gap: 0px;
 }
 
 .hc-telep-chat-call-widget.compact>.container>.top>.correspondents>.hc-telep-chat-call-widget-correspondent>.container>.main>.banner {
@@ -163,6 +172,7 @@ body>.hc-telep-chat-call-widget.compact {
     background-color: transparent;
 
 }
+
 
 
 .hc-telep-chat-call-widget.compact>.container>.top>.correspondents>.hc-telep-chat-call-widget-correspondent>.container>.main>.bottom.banner {
@@ -182,11 +192,44 @@ body>.hc-telep-chat-call-widget.compact {
     background-color: transparent;
 }
 
-.hc-telep-chat-call-widget.compact>.container>.bottom>.call-end>.call-end-main {
+.hc-telep-chat-call-widget.compact>.container>.bottom>:not(.call-end),
+.hc-telep-chat-call-widget.compact>.container>.bottom>.call-end>:not(.call-info) {
     display: none;
 }
 
 .hc-telep-chat-call-widget.compact>.container>.bottom>.call-end>.call-info>.call-time {
     height: 0px;
     background-color: transparent;
+}
+
+
+
+
+
+
+
+/** This is about the UI of call control actions */
+
+.hc-telep-chat-call-widget-action>.container {
+    display: flex;
+    flex-direction: column;
+    padding: 0.5em;
+    border-radius: 0.5em;
+    background-color: rgba(255, 255, 255, 0.6);
+    aspect-ratio: 1/1;
+    transition: 0.25s 0.125s;
+}
+
+.hc-telep-chat-call-widget-action>.container:hover {
+    color: var(--main-color);
+    background-color: black;
+}
+
+.hc-telep-chat-call-widget-action.active>.container {
+    background-color: rgba(0, 0, 0, 0.63);
+}
+
+.hc-telep-chat-call-widget-action>.container>.main {
+    display: flex;
+
 }

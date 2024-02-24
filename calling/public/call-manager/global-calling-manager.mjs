@@ -167,6 +167,24 @@ export default class GlobalCallingManager {
 
     /**
      * 
+     * Be careful!!
+     * 
+     * This is an internal method used everytime the client re-connects, in order to check list of ongoing calls,
+     * so that we can remove local references to non-existent calls.
+     */
+    async checkStaleCalls() {
+
+        const list = await hcRpc.chat.calling.getMyOngoingCalls()
+
+        for (const id in this[handles]) {
+            if (list.findIndex(x => x == this[handles][id].data.id) == -1) {
+                this[handles][id].destroy()
+            }
+        }
+    }
+
+    /**
+     * 
      * @returns {GlobalCallingManager}
      */
     static get() {

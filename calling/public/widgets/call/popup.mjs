@@ -44,8 +44,8 @@ export default class CallPopup extends PopupMenu {
 
                 setTimeout(() => {
                     main.compact = true;
-                    document.body.prepend(main.html)
-                }, 500)
+                    setTimeout(() => document.body.prepend(main.html), 500)
+                }, 150)
 
                 main.html.addEventListener('click', () => {
                     main.compact = false;

@@ -81,7 +81,8 @@ export default class ChatMessaging extends Widget {
                 target: this.html,
                 watch: {
                     dimension: 'height'
-                }
+                },
+                signal: this.destroySignal
             }
         );
 
@@ -92,7 +93,8 @@ export default class ChatMessaging extends Widget {
                 target: this.html,
                 watch: {
                     dimension: 'height'
-                }
+                },
+                signal: this.destroySignal
             }
         );
 

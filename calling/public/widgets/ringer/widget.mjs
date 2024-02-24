@@ -118,7 +118,9 @@ class CallRingerContent extends Widget {
                         }
                     );
 
-                    const callerProfile = data.profiles.find(x => x.id === data.members.invited[0])
+                    const me = await hcRpc.modernuser.authentication.whoami()
+
+                    const callerProfile = data.profiles.find(x => x.id === data.members.invited.filter(x => x != me.id)[0])
 
                     this.html.$('.container >.main >.call-details >.call-label').innerHTML = callerProfile.label
 
@@ -137,8 +139,101 @@ class CallRingerContent extends Widget {
                     });
 
                     // TODO: Now, play the ringtone, and vibration, untill the call is picked up.
+                    const audio = new Audio(new URL('./res/ring.mp3', import.meta.url).href)
+                    // audio.muted = true;
+                    audio.speed
+
+                    audio.addEventListener('ended', () => {
+                        setTimeout(() => {
+                            if (this.destroySignal.aborted) {
+                                return;
+                            }
+                            audio.currentTime = 0;
+                            audio.play()
+                        }, 1200)
+                    }, { signal: this.destroySignal })
+
+                    const startVibration = async () => {
+
+
+                        const vibrationStartTime = 4345;
+
+
+                        const doVibrate = async (pattern) => {
+                            navigator.vibrate(pattern);
+                            await Promise.race([
+                                new Promise(x => setTimeout(x, pattern.reduce((accum, curr) => accum + curr))),
+                                new Promise(x => setTimeout(x, (audio.duration - audio.currentTime) * 1000))
+                            ])
+                        }
+
+
+                        const long = 250
+                        const short = 165
+                        const short_wait = 50;
+
+                        const pattern = [
+
+                            long, short_wait * 4.5,
+
+                            short, short_wait,
+                            short, short_wait,
+                            short, short_wait,
+                            short, short_wait,
+                            short, short_wait,
+
+
+
+                            0, short_wait * 4.75,
+                            short, short_wait,
+                            short, short_wait,
+                            short, short_wait,
+
+
+                            0, short_wait * 4.5,
+                            short, short_wait,
+                            short, short_wait,
+                            short, short_wait,
+
+                            0, short_wait * 6.5,
+
+                        ]
+
+                        while (!this.destroySignal.aborted && !audio.paused) {
+
+
+
+                            while ((audio.currentTime * 1000) < vibrationStartTime) {
+
+                                await new Promise(x => setTimeout(x, (vibrationStartTime - (audio.currentTime * 1000)) * 0.1))
+                            }
+
+
+                            await doVibrate(pattern);
+
+                            if (audio.paused) {
+                                break;
+                            }
+
+
+
+                        }
+                    }
+
+                    audio.addEventListener('play', startVibration, { signal: this.destroySignal })
+
+
+                    audio.addEventListener('loadeddata', () => audio.play(), { signal: this.destroySignal })
+
+                    this.destroySignal.addEventListener('abort', () => {
+                        audio.pause()
+                        audio.loop = false
+                        audio.src = '#'
+                        audio.load()
+                    }, { once: true })
 
                 }
+
             )()
         ).catch(e => handle(e))
     }

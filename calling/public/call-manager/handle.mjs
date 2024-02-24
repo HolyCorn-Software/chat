@@ -74,10 +74,10 @@ export default class CallHandle {
 
         this[ringer] = new CallRingerUI(this.data.id);
 
-        this[ringer].destroySignal.addEventListener('abort', () => { delete this[ringer] }, { once: true })
+        this[ringer].destroySignal.addEventListener('abort', () => { this[ringer] = true }, { once: true })
 
         this[aborter].signal.addEventListener('abort', () => {
-            this[ringer].dismiss(0)
+            this[ringer]?.dismiss?.(0)
         })
 
         this[ringer].show()
@@ -152,17 +152,25 @@ export default class CallHandle {
      * @param {string} param0.data
      */
     async updateSDPData({ member, data }) {
-        const results = await hcRpc.chat.calling.updateSDPData({
-            call: this.data.id,
-            data: {
-                [member]: data
+        try {
+            const results = await hcRpc.chat.calling.updateSDPData({
+                call: this.data.id,
+                data: {
+                    [member]: data
+                }
+            });
+
+            this[internal].sdps[member] ||= {}
+
+            this[internal].sdps[member][results[member]] = data
+            return results
+        } catch (e) {
+            if (/not.*found/gi.test(`${e}`)) {
+                // If in the course of updating SDP data, we discover that the this call is invalid, let's drop it.
+                this.destroy()
             }
-        });
-
-        this[internal].sdps[member] ||= {}
-
-        this[internal].sdps[member][results[member]] = data
-        return results
+            throw e
+        }
     }
 
     /**

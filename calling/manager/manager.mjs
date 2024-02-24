@@ -176,7 +176,7 @@ export default class CallManager {
             // We end the call, either when everyone is disconnected, or the only viable members of the call is one person
             console.log(`Ending call ${id}, because ${realMembers.length == 1 ? "Only one person is left" : "Everyone disconnected"}`)
             if (connected.length > 0) {
-                this[controllers].events.clients(connected, { aggregation: { timeout: 1000 }, expectedClientLen: connected.length, noError: true }).calling.end({ id }).catch(() => undefined)
+                this[controllers].events.clients(connected, { aggregation: { timeout: 1000 }, expectedClientLen: realMembers.length, noError: true }).calling.end({ id }).catch(() => undefined)
             }
             delete this[stats][id]
         }

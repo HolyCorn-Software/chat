@@ -5,14 +5,17 @@
  */
 
 import GlobalCallingManager from "../../call-manager/global-calling-manager.mjs";
+import CallWidget from "./widget.mjs";
 import InlineUserProfile from "/$/modernuser/static/widgets/inline-profile/widget.mjs";
 import hcRpc from "/$/system/static/comm/rpc/aggregate-rpc.mjs";
-import { handle as handleError } from "/$/system/static/errors/error.mjs";
 import DelayedAction from "/$/system/static/html-hc/lib/util/delayed-action/action.mjs";
 import { Widget, hc } from "/$/system/static/html-hc/lib/widget/index.mjs";
 import { AnimatedTick } from "/$/system/static/html-hc/widgets/animated-tick/tick.js";
 import Spinner from "/$/system/static/html-hc/widgets/infinite-spinner/widget.mjs";
 
+
+const localStream = Symbol()
+const localStreamRefs = Symbol()
 
 
 
@@ -44,7 +47,6 @@ export default class CallCorrespondent extends Widget {
 
                             <div class='view'></div>
 
-                            <div class='bottom banner'></div>
                             
                         </div>
                     </div>
@@ -54,7 +56,8 @@ export default class CallCorrespondent extends Widget {
 
         this.callId = callId
 
-        const bg = Symbol()
+        const bg = Symbol();
+
         this.defineImageProperty(
             {
                 selector: '.container >.main >.view',
@@ -63,21 +66,20 @@ export default class CallCorrespondent extends Widget {
             }
         )
 
+
+        this.html.$('.container >.main >.top >.profile').appendChild(
+            new InlineUserProfile(correspondent.profile).html
+        );
+
+        this[bg] = correspondent.profile?.icon
+
         this.blockWithAction(async () => {
-
-
-            this.html.$('.container >.main >.top >.profile').appendChild(
-                new InlineUserProfile(correspondent.profile).html
-            );
-
-            this[bg] = correspondent.profile?.icon
-
 
             await this.joinCall()
 
         });
 
-        /** @type {"connecting"|"connected"} */ this.connectionStatus;
+        /** @readonly @type {"connecting"|"connected"}  */ this.connectionStatus;
 
 
         let connectionStatus;
@@ -111,6 +113,11 @@ export default class CallCorrespondent extends Widget {
                         audioEffects.connecting ||= new Audio(new URL('./res/connecting.mp3', import.meta.url).href);
                         audioEffects.connecting.loop = true
                         audioEffects.connecting.play()
+                        this.destroySignal.addEventListener('abort', () => {
+                            audioEffects.connecting.pause()
+                            audioEffects.connecting.src = '#'
+                            audioEffects.connecting.load()
+                        })
                         break;
                     default:
                         const tick = new AnimatedTick({ activated: true })
@@ -123,23 +130,63 @@ export default class CallCorrespondent extends Widget {
                         break;
                 }
                 connectionStatus = status
-            }
-        })
+                this.dispatchEvent(new CustomEvent('connectionStatusChange'))
+            },
+            get: () => connectionStatus,
+            configurable: true
+        });
 
-        this.correspondent = correspondent
+        /** @type {(event: "connectionStatusChange", cb: (event: Event)=> void, opts?: AddEventListenerOptions)=> void} */ this.addEventListener;
+
+        this.correspondent = correspondent;
+
+        /** @type {ReturnType<this['connection']['addTrack']>[]} */ this[localStreamRefs];
 
 
     }
 
+    /**
+     * @readonly
+     * @returns {CallWidget}
+     */
+    get parent() {
+        return this.html.closest(`.${CallWidget.classList.join('.')}`)?.widgetObject
+    }
+
+    /**
+     * @param {MediaStream} stream
+     */
+    set localStream(stream) {
+
+        const removeOld = () => this[localStreamRefs]?.forEach(ref => {
+            try { this.connection.removeTrack(ref) } catch { }
+            ref.track?.stop()
+            this[localStream].removeTrack(ref.track)
+            delete this[localStream]
+        });
+
+        removeOld()
+
+        this[localStreamRefs] = stream.getTracks().map(track => (this.connection.addTrack(track, stream)))
+
+        this[localStream] = stream
+    }
+    get localStream() {
+        return this[localStream]
+    }
+
 
     async joinCall() {
-        const handle = await GlobalCallingManager.get().getHandle({ id: this.callId })
-        const me = await hcRpc.modernuser.authentication.whoami()
+        const handle = this.handle = await GlobalCallingManager.get().getHandle({ id: this.callId })
+        const me = this.me = await hcRpc.modernuser.authentication.whoami()
         const isMe = me.id == this.correspondent.profile.id;
 
         /** @type {HTMLVideoElement} */
         const videoHTML = hc.spawn({ tag: 'video', attributes: { autoplay: true } })
-        this.html.$('.container >.main >.view').appendChild(videoHTML)
+        const target = this.html.$('.container >.main >.view');
+        target.querySelectorAll('video').forEach(vid => vid.remove())
+        target.appendChild(videoHTML)
+
 
         this.html.classList.toggle('voice-only', handle.type === 'voice')
 
@@ -163,16 +210,29 @@ export default class CallCorrespondent extends Widget {
                 setTimeout(() => this.destroy(), 2000)
             }, { signal: aborter.signal })
 
-            const localStream = await GlobalCallingManager.getMediaStream({ audio: true, video: handle.type == 'video' }, aborter.signal)
+            this.html.addEventListener('hc-connected-to-dom', () => {
+                videoHTML.play()
+                videoHTML.currentTime = Date.now()
+            })
+
             if (isMe) {
                 videoHTML.muted = true
-                videoHTML.srcObject = localStream
+                const setVideoStream = async () => {
+                    videoHTML.srcObject = await this.parent.getLocalStream()
+                    videoHTML.load()
+                    videoHTML.play()
+                }
+                this.parent.addEventListener('localstream-changed', setVideoStream, { signal: aborter.signal })
+                await setVideoStream()
+
+
+                this.parent.addEventListener('localstream-destroyed', () => {
+                    videoHTML.srcObject = null;
+                    videoHTML.load()
+                }, { signal: aborter.signal })
+
                 return
             }
-
-            aborter.signal.addEventListener('abort', () => {
-                connection.close()
-            }, { once: true })
 
             this.connectionStatus = 'connecting'
 
@@ -181,7 +241,7 @@ export default class CallCorrespondent extends Widget {
 
             const isMain = ((await handle.updateSDPData({ member: this.correspondent.profile.id, data: '' }))[this.correspondent.profile.id] == 'offer')
 
-            const connection = new RTCPeerConnection({
+            const connection = this.connection = new RTCPeerConnection({
                 iceServers: [
                     {
                         urls: [
@@ -204,11 +264,28 @@ export default class CallCorrespondent extends Widget {
             });
 
 
-            localStream.getTracks().forEach(track => {
-                connection.addTrack(track, localStream)
-            })
+            aborter.signal.addEventListener('abort', () => {
+                connection.close()
+            }, { once: true })
 
-            const remoteStream = new MediaStream()
+
+            const setLocalStream = async () => {
+                this.localStream = await this.parent.getLocalStream()
+            }
+
+            await setLocalStream()
+
+            this.parent.addEventListener('localstream-changed', () => {
+                setLocalStream()
+                console.log(`localstream changed!`)
+            }, { signal: aborter.signal })
+
+            this.parent.addEventListener('localstream-destroyed', () => {
+                this[localStreamRefs].forEach((ref) => connection.removeTrack(ref))
+            }, { signal: aborter.signal })
+
+
+            const remoteStream = this.remoteStream = new MediaStream()
 
             videoHTML.srcObject = remoteStream
 
@@ -386,7 +463,13 @@ export default class CallCorrespondent extends Widget {
 
         }
 
-        await setupStreaming()
+        try {
+            await setupStreaming()
+        } catch (e) {
+            if (!/not.*found/gi.test(`${e}`)) {
+                throw e
+            }
+        }
 
 
     }

@@ -10,11 +10,14 @@ import CallCorrespondent from "./correspondent.mjs";
 import hcRpc from "/$/system/static/comm/rpc/aggregate-rpc.mjs";
 import { handle } from "/$/system/static/errors/error.mjs";
 import { Widget, hc } from "/$/system/static/html-hc/lib/widget/index.mjs";
+import ListPopup from "/$/system/static/html-hc/widgets/list-popup/widget.mjs";
 
 
 const interval = Symbol()
 const init = Symbol()
 const callHandle = Symbol()
+const localStream = Symbol()
+const updateLocalStream = Symbol()
 
 
 /**
@@ -44,10 +47,15 @@ export default class CallWidget extends Widget {
                     </div>
 
                     <div class='bottom'>
-                        <div class='call-end'>
-                        <div class='call-end-main'>
-                            <div class='call-end-icon'></div>
+
+                        <div class='controls'>
+                            <div class='actions'></div>
                         </div>
+                    
+                        <div class='call-end'>
+                            <div class='call-end-main'>
+                                <div class='call-end-icon'></div>
+                            </div>
                             <div class='call-info highlight'>
                                 <div class='call-time'>00:00</div>
                             </div>
@@ -81,7 +89,8 @@ export default class CallWidget extends Widget {
                 watch: {
                     dimension: 'width'
                 },
-                apply: '--content-width'
+                apply: '--content-width',
+                signal: this.destroySignal
             }
         )
 
@@ -112,6 +121,7 @@ export default class CallWidget extends Widget {
             }, 'callTime'
         )
 
+        /** @type {(event: "localstream-changed"|"localstream-destroyed", cb: (event: CustomEvent)=> void, opts?:AddEventListenerOptions)=>void} */ this.addEventListener
 
 
         this.blockWithAction(async () => {
@@ -149,38 +159,157 @@ export default class CallWidget extends Widget {
                 selector: ['', ...CallCorrespondent.classList].join('.'),
                 parentSelector: '.container >.top >.correspondents',
                 transforms: {
-                    set: (data) => new CallCorrespondent(data, this.id).html,
+                    set: (data) => new CallCorrespondent(data, this.id, this).html,
                     get: html => html.widgetObject.correspondent
                 },
                 sticky: true,
             }, 'correspondents'
         );
 
+        /** @type {CallCorrespondent[]} */ this.correspondentWidgets;
+        this.pluralWidgetProperty(
+            {
+                childType: 'widget',
+                selector: ['', ...CallCorrespondent.classList].join('.'),
+                parentSelector: '.container >.top >.correspondents',
+            },
+            'correspondentWidgets'
+        )
+
+
 
         this.html.$('.container >.bottom >.call-end').addEventListener('click', () => {
-            if (this[callHandle]?.ended) {
-                return this.destroy()
+            if (!(this[callHandle]?.ended ?? true)) {
+                this[callHandle].exit()
+            } else {
+                this.destroy()
             }
-            this[callHandle]?.exit()
         }, { signal: this.destroySignal })
 
 
+        /** @type {(ConstructorParameters<(typeof Action)>['0'])[]} */ this.actions
 
 
+        this.pluralWidgetProperty(
+            {
+                selector: ['', ...Action.classList].join('.'),
+                parentSelector: '.container >.bottom >.controls >.actions',
+                transforms: {
+                    set: (input) => {
+                        return new Action(input).html
+                    },
+                    get: html => {
+                        return {
+                            img: html.widgetObject?.img,
+                            onclick: html.widgetObject?.onclick
+                        }
+                    }
+                },
+            },
+            'actions'
+        );
 
+        this.actions = [
+            {
+                img: './mic-settings.svg',
+                onclick: () => {
+
+                }
+            },
+            {
+                img: './microphone-slash.svg',
+                onclick: (action) => {
+                    action.active = !action.active;
+                }
+            },
+            {
+                img: './camera-rotate.svg',
+                onclick: () => {
+                    const sel = new CallAudioSourceSelect(
+                        {
+                            title: `Select Camera`,
+                            type: 'videoinput',
+                            caption: ``
+                        }
+                    );
+                    sel.addEventListener('change', async () => {
+
+                        this.dispatchEvent(new CustomEvent('localstream-destroyed'))
+
+                        this[localStream].getTracks().forEach(track => {
+                            track.stop()
+                            this[localStream].removeTrack(track)
+                        })
+
+                        GlobalCallingManager.getMediaStream(
+                            {
+
+                                video: {
+                                    deviceId: sel.value[0],
+                                },
+                                audio: true
+                            },
+                            this[callHandle].destroySignal
+                        ).then(nwStream => this[updateLocalStream](nwStream))
+
+                        sel.destroy()
+                    }, { signal: sel.destroySignal })
+                    sel.show()
+                }
+            }
+        ]
+
+
+    }
+
+    /**
+     * 
+     * @param {MediaStream} stream 
+     */
+    async [updateLocalStream](stream) {
+        const meStream = await this.getLocalStream()
+
+        meStream.getTracks().forEach(track => {
+            meStream.removeTrack(track)
+            track?.stop()
+        })
+
+        this[localStream] = stream;
+
+        this.dispatchEvent(new CustomEvent('localstream-changed'))
+    }
+
+    /**
+     * 
+     * @returns {ReturnType<(typeof GlobalCallingManager)['getMediaStream']>}
+     */
+    async getLocalStream() {
+        return this[localStream] ||= await GlobalCallingManager.getMediaStream({ audio: true, video: this[callHandle].type == 'video' }, this[callHandle].destroySignal)
     }
 
     async [init]() {
         const me = await hcRpc.modernuser.authentication.whoami()
         const onCorrespondentChange = () => {
             this.correspondents = [...new Set([me.id, ...this[callHandle].members.acknowledged].filter(x => !new Set(this[callHandle].members.rejected).has(x)))].map(ack => ({ profile: this[callHandle].profiles.find(usr => usr.id == ack) }))
+            refreshCounting()
+            this.correspondentWidgets.filter(x => x.correspondent.profile.id != me.id).forEach(
+                x => x.addEventListener('connectionStatusChange', refreshCounting)
+            )
         }
 
         this[callHandle].events.addEventListener('members-change', onCorrespondentChange, { signal: this.destroySignal });
 
         this.blockWithAction(async () => {
-            await this[callHandle].connect()
-            onCorrespondentChange()
+            try {
+                await this[callHandle].connect();
+                onCorrespondentChange()
+            } catch (e) {
+                if (/call.*not.*found/gi.test(`${e}`)) {
+                    setTimeout(() => this.destroy())
+                }
+                console.log(`${e}`)
+                throw e
+            }
 
         })
 
@@ -189,9 +318,13 @@ export default class CallWidget extends Widget {
             stopCounting()
         }, { once: true, signal: this.destroySignal })
 
-        const start = Date.now()
+        let start = Date.now()
 
         const startCounting = () => {
+            if (!start) {
+                start = Date.now() - (this.callTime || 0)
+
+            }
             this[interval] = setInterval(() => {
                 this.callTime = Date.now() - start;
             }, 1000);
@@ -199,10 +332,32 @@ export default class CallWidget extends Widget {
 
         const stopCounting = () => {
             clearInterval(this[interval]);
+            start = undefined;
         }
 
         stopCounting()
-        startCounting();
+
+        const refreshCounting = () => {
+            if (
+                // If all correspondents
+                this.correspondentWidgets.filter(
+                    // that are not me
+                    x => x.correspondent.profile.id != me.id
+                ).filter(
+                    // that are connected
+                    x => x.connectionStatus == 'connected'
+                )
+                    // are more than zero in number
+                    .length > 0
+            ) {
+                // Then the call officially started
+                startCounting();
+            } else {
+                stopCounting()
+            }
+        }
+
+        refreshCounting()
 
         this.destroySignal.addEventListener('abort', stopCounting, { once: true })
 
@@ -211,6 +366,7 @@ export default class CallWidget extends Widget {
     }
 
     async placeCall() {
+        /** @type {Awaited<ReturnType<GlobalCallingManager['getHandle']>} */
         this[callHandle] = await GlobalCallingManager.get().getHandle(
             {
                 id: this.id = await hcRpc.chat.calling.placeCallFromChat({ chat: this.chat.id, type: this.type })
@@ -240,55 +396,51 @@ export default class CallWidget extends Widget {
     }
 }
 
-/**
- * This widget represents a single action on the call UI 
- */
-class CallAction extends Widget {
 
+class Action extends Widget {
 
-    constructor() {
+    /**
+     * 
+     * @param {object} param0 
+     * @param {string} param0.img
+     * @param {(action: Action)=> void} param0.onclick
+     */
+    constructor({ img, onclick } = {}) {
+        super()
 
-        super();
-
-        super.html = hc.spawn({
-            classes: CallAction.classList,
-            innerHTML: `
-                <div class='container'>
-                    <div class='main'></div>
-                </div>
-            `
-        });
-
-        /** @type {string} */ this.icon
-        this.defineImageProperty(
+        super.html = hc.spawn(
             {
-                selector: '.container >.main',
-                property: 'icon',
-                mode: 'inline',
-                cwd: new URL('./res/', import.meta.url).href,
+                classes: Action.classList,
+                innerHTML: `
+                    <div class='container'>
+                        <div class='image'></div>
+                    </div>
+                `
             }
         );
 
-        Object.assign(this, arguments[0])
-
-        /** @type {boolean} Writing to this property highlights, or reverts the UI*/ this.active
+        /** @type {string} */ this.img
+        this.defineImageProperty(
+            {
+                selector: ':scope >.container >.image',
+                property: 'img',
+                cwd: new URL('./res/', import.meta.url).href,
+                mode: 'inline'
+            }
+        );
+        /** @type {boolean} */ this.active
         this.htmlProperty(undefined, 'active', 'class')
 
+        Object.assign(this, arguments[0])
+
 
     }
-
-    set execute(fxn) {
-        this.html.onclick = () => {
-            this.blockWithAction(() => fxn?.(this))
-        }
+    set onclick(onclick) {
+        this.html.onclick = () => onclick?.(this)
     }
-    get data() {
-        return {
-            execute: this.execute,
-            icon: this.icon
-        }
+    get onclick() {
+        return this.html.onclick
     }
-
 
     /**
      * @readonly
@@ -296,4 +448,48 @@ class CallAction extends Widget {
     static get classList() {
         return ['hc-telep-chat-call-widget-action'];
     }
+
+}
+
+
+
+class CallAudioSourceSelect extends ListPopup {
+
+    /**
+     * 
+     * @param {object} param0 
+     * @param {string} param0.title
+     * @param {string} param0.caption
+     * @param {Awaited<ReturnType<navigator['mediaDevices']['enumerateDevices']>>['0']['kind']} param0.type
+     */
+    constructor({ title, caption, type } = {}) {
+        super(
+            {
+                selectionSize: { min: 1, max: 1 },
+                title,
+                caption,
+                actionText: `Done`,
+                hideOnOutsideClick: true
+            }
+        );
+
+        this.blockWithAction(
+            async () => {
+                let devices = (await navigator.mediaDevices.enumerateDevices()).filter(x => x.kind == type);
+                if (devices.length > 1) {
+                    devices = devices.filter(x => x.deviceId != 'default')
+                }
+                this.options = devices.map(
+                    dev => {
+                        return {
+                            label: dev.label,
+                            value: dev.deviceId,
+                            caption: '',
+                        }
+                    }
+                )
+            }
+        );
+    }
+
 }

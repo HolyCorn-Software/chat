@@ -17,7 +17,7 @@
     flex-direction: column;
 }
 
-.hc-telep-chat-call-widget-correspondent.voice-only>.container>.main>.top>.details {
+.hc-telep-chat-call-widget-correspondent>.container>.main>.top>.details {
     display: flex;
     align-items: center;
     gap: 0.5em;
@@ -25,11 +25,11 @@
     flex-grow: 1;
 }
 
-.hc-telep-chat-call-widget-correspondent.voice-only>.container>.main>.top>.details>.padding {
+.hc-telep-chat-call-widget-correspondent.container>.main>.top>.details>.padding {
     flex-grow: 0.2;
 }
 
-.hc-telep-chat-call-widget-correspondent.voice-only>.container>.main>.top>.details>.connection-status {
+.hc-telep-chat-call-widget-correspondent>.container>.main>.top>.details>.connection-status {
     color: green;
     min-height: 2em;
     flex-grow: 0.8;
@@ -38,7 +38,7 @@
     justify-content: center;
 }
 
-.hc-telep-chat-call-widget-correspondent.voice-only>.container>.main>.top>.details>.connection-status>.hc-infinite-spinner {
+.hc-telep-chat-call-widget-correspondent>.container>.main>.top>.details>.connection-status>.hc-infinite-spinner {
     font-size: 0.25em;
     --hc-spinner-color: orange;
 }

@@ -50,7 +50,9 @@ export default class ChatEventClient extends EventChannelClient {
                     return firstTime = false
                 }
                 // Get current calls, and put a ringer UI, for each.
-                checkOngoingCalls()
+                checkOngoingCalls().then(() => {
+                    GlobalCallingManager.get().checkStaleCalls()
+                })
             });
 
         })())

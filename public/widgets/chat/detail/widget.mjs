@@ -121,7 +121,10 @@ class ExtrasView extends Widget {
                         const widget = new Widget();
                         widget.html = hc.spawn({})
                         this.content.push(widget.html)
-                        widget.loadWhilePromise(promise).then(results => widget.html.appendChild(results.html))
+                        widget.loadWhilePromise(promise).then(results => {
+                            if (!results) return;
+                            widget.html.appendChild(results.html)
+                        })
                     },
                     data: {
                         chat

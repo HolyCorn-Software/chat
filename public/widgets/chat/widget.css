@@ -12,7 +12,7 @@
     gap: 0.125em;
     height: 100%;
     height: calc(var(--hc-telep-mobile-device-frame-content-height, 100vh - 2em) - 4.5em);
-    color: var(--theme-blue-color);
+    color: var(--theme-color);
 }
 
 .hc-telep-chat-widget>.container>.messaging-ui {
@@ -25,7 +25,7 @@
     display: flex;
     flex-direction: column;
     font-size: 1.25em;
-    border-bottom: 1px solid var(--theme-blue-color);
+    border-bottom: 1px solid var(--theme-color);
     padding: 0.5em;
     z-index: 2;
     position: relative;
@@ -68,5 +68,5 @@
 .hc-telep-chat-widget>.container>.action-bar>.main>.right>.actions {
     display: flex;
     gap: 1em;
-    color: var(--theme-blue-color);
+    color: var(--theme-color);
 }

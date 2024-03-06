@@ -17,7 +17,7 @@
     align-items: center;
     gap: 1em;
     position: relative;
-    color: var(--theme-brown-blue);
+    color: var(--theme-color);
 }
 
 
@@ -37,9 +37,23 @@
     border-radius: 0.85em;
     font-family: comfortaa;
     font-weight: 400;
-    width: 100%;
+    max-width: calc(100% - 4.25em);
 
-    background-color: #b4fbf6;
+}
+
+.hc-telep-chat-messaging-compose>.container>.main>.text-box::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    border-radius: inherit;
+    padding: inherit;
+    background-color: #e9eff1;
+    opacity: 0.4;
+    pointer-events: none;
+    z-index: -1;
 }
 
 .hc-telep-chat-messaging-compose>.container>.main>.text-box>* {
@@ -59,7 +73,7 @@
 
 
 .hc-telep-chat-messaging-compose>.container>.main>.text-box>*>.holycorn-node {
-    color: rgb(12, 162, 221);
+    color: var(--theme-color);
     display: inline-flex;
 }
 

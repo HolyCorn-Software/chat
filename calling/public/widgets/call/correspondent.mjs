@@ -117,7 +117,7 @@ export default class CallCorrespondent extends Widget {
                             audioEffects.connecting.pause()
                             audioEffects.connecting.src = '#'
                             audioEffects.connecting.load()
-                        })
+                        }, { once: true })
                         break;
                     default:
                         const tick = new AnimatedTick({ activated: true })

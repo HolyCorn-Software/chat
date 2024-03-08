@@ -280,7 +280,8 @@ export default class ChatManagement {
                         id: chat.recipients.filter(x => x !== data.userid)[0]
                     })
             ).label,
-            icon: chat.type === 'group' ? chat.icon : otherUser.icon
+            icon: chat.type === 'group' ? chat.icon : otherUser.icon,
+            ...chat
         }
     }
 

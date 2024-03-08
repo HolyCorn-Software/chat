@@ -224,6 +224,7 @@ export default class ChatMessaging extends Widget {
          */
         (offset) => {
 
+
             const msgUI = this.html.$('.container >.messages');
 
             const startTime = Date.now()
@@ -236,15 +237,16 @@ export default class ChatMessaging extends Widget {
 
             const cleanup = () => {
                 clearInterval(interval)
+                msgUI.scrollTop = msgUI.scrollHeight
             }
-            let speed = 4
+            let speed = 10
 
             interval = setInterval(() => {
                 msgUI.scrollTop += (5 * speed)
                 speed += 0.45
                 const available = Math.round(msgUI.scrollHeight - msgUI.getBoundingClientRect().height);
 
-                if ((msgUI.scrollTop >= available) || (Date.now() - startTime > 5000)) {
+                if ((msgUI.scrollTop >= available) || (Date.now() - startTime > 2000)) {
                     cleanup()
                 }
             }, 20)

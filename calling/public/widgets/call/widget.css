@@ -220,9 +220,12 @@ body>.hc-telep-chat-call-widget.compact {
     transition: 0.25s 0.125s;
 }
 
-.hc-telep-chat-call-widget-action>.container:hover {
-    color: var(--main-color);
-    background-color: black;
+@media (hover:none) {
+
+    .hc-telep-chat-call-widget-action>.container:hover:not(:active) {
+        color: var(--main-color);
+        background-color: black;
+    }
 }
 
 .hc-telep-chat-call-widget-action.active>.container {

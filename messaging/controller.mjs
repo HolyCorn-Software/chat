@@ -78,7 +78,7 @@ export default class MessagingController {
 
         // Now, inform recipients of the chat, of the new message
         // TODO: Make this process more efficient, by delaying notification (re-)initialization
-        this[controllers].events.inform([chatData.id], new CustomEvent(`chat-${chatData.id}-message`), {
+        this[controllers].events.inform([chatData.id], new CustomEvent(`chat-${chatData.id}-message,telep-chat-new-message`), {
             aggregation: {
                 timeout: 1000,
             },
@@ -206,7 +206,8 @@ export default class MessagingController {
             new CustomEvent(`chat-${chat}-user-timeposition-change`, {
                 detail: {
                     position: {
-                        ...position,
+                        delivered: position['position.delivered'],
+                        read: position['position.read'],
                         userid: undefined,
                         member: userid
                     }

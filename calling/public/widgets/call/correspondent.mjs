@@ -160,14 +160,18 @@ export default class CallCorrespondent extends Widget {
 
         const removeOld = () => this[localStreamRefs]?.forEach(ref => {
             try { this.connection.removeTrack(ref) } catch { }
-            ref.track?.stop()
-            this[localStream].removeTrack(ref.track)
             delete this[localStream]
         });
 
-        removeOld()
+        if (stream != this[localStream]) {
+            removeOld()
+        }
 
         this[localStreamRefs] = stream.getTracks().map(track => (this.connection.addTrack(track, stream)))
+        stream.addEventListener('addtrack', (event) => {
+            console.log(`New track in the just set stream`)
+            this.connection.addTrack(event.track, stream)
+        })
 
         this[localStream] = stream
     }
@@ -290,6 +294,7 @@ export default class CallCorrespondent extends Widget {
             videoHTML.srcObject = remoteStream
 
             connection.addEventListener('track', (event) => {
+                console.log(`New remote track `, event)
                 event.streams[0].getTracks().forEach((track) => remoteStream.addTrack(track))
             }, { signal: aborter.signal })
 
@@ -312,7 +317,7 @@ export default class CallCorrespondent extends Widget {
             }
 
             const reInitiate = () => {
-                if ((connection.connectionState != 'connected' && connection.connectionState != 'connecting') || connection.signalingState != 'stable') {
+                if ((connection.connectionState != 'connected' && connection.connectionState != 'connecting') || (connection.signalingState != 'stable')) {
                     createOffer().catch(e => {
                         if (/call.*not.*found/gi.test(e)) {
                             aborter.abort()

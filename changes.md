@@ -1,5 +1,9 @@
 .
 
-Made improvements to the UI.
+Improved call media source switching feature.
 
-Improved stability of the platform.
+Improved UX.
+
+Added additional data to the getChatViewData() method
+
+Improved dispatch of notifications to frontend.

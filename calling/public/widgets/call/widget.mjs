@@ -17,6 +17,7 @@ const interval = Symbol()
 const init = Symbol()
 const callHandle = Symbol()
 const localStream = Symbol()
+const localStreamPromise = Symbol()
 const updateLocalStream = Symbol()
 
 
@@ -219,13 +220,16 @@ export default class CallWidget extends Widget {
             {
                 img: './microphone-slash.svg',
                 onclick: (action) => {
+                    this.getLocalStream().then((stream) => {
+                        stream.getAudioTracks().forEach(track => track.enabled = !action.active)
+                    })
                     action.active = !action.active;
                 }
             },
             {
                 img: './camera-rotate.svg',
                 onclick: () => {
-                    const sel = new CallAudioSourceSelect(
+                    const sel = new CallMediaSourceSelect(
                         {
                             title: `Select Camera`,
                             type: 'videoinput',
@@ -275,6 +279,7 @@ export default class CallWidget extends Widget {
         })
 
         this[localStream] = stream;
+        delete this[localStreamPromise]
 
         this.dispatchEvent(new CustomEvent('localstream-changed'))
     }
@@ -284,7 +289,13 @@ export default class CallWidget extends Widget {
      * @returns {ReturnType<(typeof GlobalCallingManager)['getMediaStream']>}
      */
     async getLocalStream() {
-        return this[localStream] ||= await GlobalCallingManager.getMediaStream({ audio: true, video: this[callHandle].type == 'video' }, this[callHandle].destroySignal)
+        if (this[localStream]) {
+            return await this[localStream]
+        }
+
+        const main = async () => this[localStream] ||= await GlobalCallingManager.getMediaStream({ audio: true, video: this[callHandle].type == 'video' }, this[callHandle].destroySignal);
+
+        return await (this[localStreamPromise] ||= main())
     }
 
     async [init]() {
@@ -362,7 +373,6 @@ export default class CallWidget extends Widget {
         this.destroySignal.addEventListener('abort', stopCounting, { once: true })
 
 
-        // TODO: Handle call-ended, and show UI
     }
 
     async placeCall() {
@@ -453,7 +463,7 @@ class Action extends Widget {
 
 
 
-class CallAudioSourceSelect extends ListPopup {
+class CallMediaSourceSelect extends ListPopup {
 
     /**
      * 
@@ -477,12 +487,13 @@ class CallAudioSourceSelect extends ListPopup {
             async () => {
                 let devices = (await navigator.mediaDevices.enumerateDevices()).filter(x => x.kind == type);
                 if (devices.length > 1) {
-                    devices = devices.filter(x => x.deviceId != 'default')
+                    devices = devices.filter(x => x.deviceId != 'default' && ! /infrared/gi.test(x.label))
                 }
+                console.log(`devices `, devices)
                 this.options = devices.map(
                     dev => {
                         return {
-                            label: dev.label,
+                            label: type == 'videoinput' ? (/front/gi.test(dev.label) ? "Front Camera" : "Back Camera") : dev.label,
                             value: dev.deviceId,
                             caption: '',
                         }

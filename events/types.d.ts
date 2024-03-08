@@ -20,6 +20,7 @@ global {
             'telep-chat-state-changed': {
                 id: string
             }
+            'telep-chat-new-message': undefined
         }
     }
 }

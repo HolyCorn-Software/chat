@@ -49,12 +49,16 @@ if (globalThis.ChatMessagingAPI) {
                         );
                         // Now trigger a notification
 
-                        console.log(`${label}, has ${count} unread messages.`)
+                        console.log(`${label}, has ${count} unread messages.`);
 
-                        ChatMessagingAPI.notify(
-                            label,
-                            new Number(count).valueOf(),
-                            tasks[id].data.id
+                        (await AppFrameAPI.notification()).notify(
+                            {
+                                title: `New Messages from ${label}`,
+                                content: `${count} unread messages from ${label}`,
+                                groupId: 'group',
+                                id: tasks[id].data.id,
+
+                            }
                         )
 
                     }

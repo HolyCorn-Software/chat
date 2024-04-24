@@ -13,7 +13,7 @@ import DelayedAction from "/$/system/static/html-hc/lib/util/delayed-action/acti
 
 
 
-if (globalThis.ChatMessagingAPI) {
+if (globalThis.AppFrameAPI) {
 
 
     ChatEventClient.create().then(client => {
@@ -34,14 +34,18 @@ if (globalThis.ChatMessagingAPI) {
                     const main = async () => {
                         /** @type {ChatMessaging[]} */
                         const chatWidgets = [...document.body.querySelectorAll(['', ...ChatMessaging.classList].join('.'))].map(x => x.widgetObject)
-                        if (document.visibilityState == 'visible' && (chatWidgets.findIndex(x => (x.chat == id) && x.html.isConnected) != -1)) {
-                            return // Then the user is currently facing a UI of this chat. No need to send notifications
+                        if (
+                            document.visibilityState == 'visible' && (
+                                chatWidgets.findIndex(x => (x.chat.id == id) && x.visible) != -1
+                            )
+                        ) {
+                            return console.log(`User is seeing the messages `)// Then the user is currently facing a UI of this chat. No need to send notifications
                         }
 
                         const count = await hcRpc.chat.messaging.countUnread({ chat: id });
 
                         if (count < 1) {
-                            return;
+                            return console.log(`Not enough new messages to alert.`);
                         }
 
                         const { label } = (

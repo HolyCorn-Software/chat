@@ -22,7 +22,7 @@ const timePositions = Symbol()
 const setUnreadBadgeCount = Symbol()
 const onUnreadCountChange = Symbol()
 const drawUnreadCountBadge = Symbol()
-const lastScrollPosition = Symbol()
+const lastVisibleMessageHTML = Symbol()
 
 
 export default class ChatMessaging extends Widget {
@@ -180,8 +180,8 @@ export default class ChatMessaging extends Widget {
             if (this.unreadCount > 0) {
                 this[drawUnreadCountBadge]()
             } else {
-                if (this[lastScrollPosition]) {
-                    this.scrollToBottom(this[lastScrollPosition])
+                if (this[lastVisibleMessageHTML]) {
+                    this.scrollToBottom(this[lastVisibleMessageHTML])
                 } else {
                     this.scrollToBottom()
                 }
@@ -190,7 +190,12 @@ export default class ChatMessaging extends Widget {
 
         // Now, the logic of remembering the last scroll position
         this.html.$('.container >.messages').addEventListener('scroll', new DelayedAction(() => {
-            this[lastScrollPosition] = this.html.$('.container >.messages').scrollTop
+            const visibleOnes = this.messageWidgets.filter(widget => {
+                const rect = widget.html.getBoundingClientRect();
+                return rect.top > (window.innerHeight / 4) && rect.bottom > (window.innerHeight / 4)
+            })
+
+            this[lastVisibleMessageHTML] = visibleOnes[0]?.html
         }, 250, 2000), { signal: this.destroySignal })
 
         Object.assign(this, arguments[0])
@@ -217,39 +222,24 @@ export default class ChatMessaging extends Widget {
         )
     }
 
+    get visible() {
+        return document.visibilityState == 'visible' && this.html.isConnected && ((style) => {
+            // To say that this view is visible
+            return style.visibility == 'visible' // Must be visible
+                && new Number(style.opacity).valueOf() > 0.1 // Must be not be too transparent
+                && new Number(style.fontSize.split(/[^0-9.]/)[0]).valueOf() > 4 // Must have at least 4px font size
+        })(window.getComputedStyle(this.html))
+
+    }
+
     scrollToBottom = new DelayedAction(
         /**
          * 
-         * @param {number} offset If this argument is passed, then we would not scroll to the bottom. We'll stop at position
+         * @param {HTMLElement} html If this argument is passed, then we would not scroll to the bottom. We'll stop at position
          */
-        (offset) => {
-
-
-            const msgUI = this.html.$('.container >.messages');
-
-            const startTime = Date.now()
-
-            if (offset) {
-                return msgUI.scrollTop = offset
-            }
-
-            let interval;
-
-            const cleanup = () => {
-                clearInterval(interval)
-                msgUI.scrollTop = msgUI.scrollHeight
-            }
-            let speed = 10
-
-            interval = setInterval(() => {
-                msgUI.scrollTop += (5 * speed)
-                speed += 0.45
-                const available = Math.round(msgUI.scrollHeight - msgUI.getBoundingClientRect().height);
-
-                if ((msgUI.scrollTop >= available) || (Date.now() - startTime > 2000)) {
-                    cleanup()
-                }
-            }, 20)
+        (html) => {
+            if (!this.visible) return;
+            (html || this.messageWidgets.at(-1)?.html)?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' })
         }, 100, 2000
     )
 
@@ -340,7 +330,9 @@ export default class ChatMessaging extends Widget {
         const mainMsgWidget = this.messageWidgets[this.messageWidgets.length - this.unreadCount - 1];
         if (!mainMsgWidget) return;
         this[setUnreadBadgeCount](mainMsgWidget)
-        mainMsgWidget.html.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+        if (this.visible) {
+            mainMsgWidget.html.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+        }
     }
 
     get unreadCount() {

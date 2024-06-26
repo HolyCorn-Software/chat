@@ -99,9 +99,6 @@ export default class ChatPublicMethods extends FacultyPublicMethods {
             try {
                 /** @type {telep.chat.ChatMetadata} */
                 const meta = { ...chat }
-                const viewData = await this[controller].management.getChatViewData({ userid, id: chat.id })
-                meta.label = viewData.label
-                meta.icon = viewData.icon
                 /** @type {telep.chat.messaging.Message} */
                 const lastMessage = (await (await this[controller].messaging.getMessages({ chat: chat.id, userid, limit: 1 })).next()).value
                 // TODO: Improve captioning
@@ -120,12 +117,13 @@ export default class ChatPublicMethods extends FacultyPublicMethods {
 
     /**
      * This method gets metadata about the chats of the calling user, with extra info
+     * @param {telep.chat.management.ChatType} param0.type
      * @returns {Promise<telep.chat.ChatMetadata[]>}
      */
-    async getMyChatsMetadata() {
+    async getMyChatsMetadata(type) {
         const userid = (await muser_common.getUser(arguments[0])).id
 
-        const chats = await this[controller].management.getUserChats({ userid })
+        const chats = await this[controller].management.getUserChats({ userid, type: arguments[1] })
         const results = await Promise.allSettled(
             chats.map((item) => this[internal].getChatMetaData(item, userid))
         );

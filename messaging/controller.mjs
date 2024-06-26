@@ -56,12 +56,18 @@ export default class MessagingController {
             throw new Exception(`You can't send messages, because this chat is not (yet) active`)
         }
 
+        // And now, if the user is not part of the chat, and he's sending a message, let's automatically add him to the chat.
+        // Of course, by now, we have already checked (via getChatInfoSecure();), that he's allowed to access to this chat.
+        if (!chatData.recipients.includes(msg.userid)) {
+            await this[controllers].management.addUserToChat({ userid: msg.userid, id: msg.chat })
+        }
+
         const id = shortUUID.generate()
 
         this[collections].messages.insertOne(
             {
                 ...msg,
-                sender: msg.userid,
+                sender: msg.userid == chatData.role?.member ? 'role' : msg.userid,
                 time: Date.now(),
                 id,
 
@@ -76,18 +82,50 @@ export default class MessagingController {
             }
         );
 
+        const roleMembers = []
+
+        if (chatData.type == 'roled') {
+            for await (const { userid } of await this[controllers].management.getRoleMembers({ role: chatData.role.data.name })) {
+                roleMembers.push(userid)
+            }
+
+        }
+
         // Now, inform recipients of the chat, of the new message
-        // TODO: Make this process more efficient, by delaying notification (re-)initialization
-        this[controllers].events.inform([chatData.id], new CustomEvent(`chat-${chatData.id}-message,telep-chat-new-message`), {
+
+        this[controllers].events.inform([chatData.id, ...roleMembers], new CustomEvent(`chat-${chatData.id}-message,telep-chat-new-message`), {
             aggregation: {
-                timeout: 1000,
+                timeout: 500,
             },
             expectedClientLen: chatData.recipients.length - 1,
+            precallWait: 2000,
+
             exclude: [msg.userid],
             retries: 2,
-            timeout: 5000,
-            retryDelay: 250,
-        })
+            timeout: 2000,
+            retryDelay: 350,
+        });
+
+        // Now, if the chat is a roled one, inform members of the role
+        if (chatData.type == 'roled' && !chatData.role.member) {
+
+            this[controllers].events.inform(
+                roleMembers,
+                new CustomEvent(`telep-chat-new-roled-chat`, { detail: { id: chatData.id } }),
+                {
+                    aggregation: {
+                        timeout: 5000,
+                    },
+                    expectedClientLen: Math.min(roleMembers.length, 2),
+                    exclude: [msg.userid],
+                    retries: 5,
+                    timeout: 2000,
+                    retryDelay: 1000,
+                    precallWait: 5000
+                }
+            )
+
+        }
 
 
         return id

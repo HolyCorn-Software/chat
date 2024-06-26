@@ -22,6 +22,17 @@ export default class ChatManagementPublicMethods extends muser_common.UseridAuth
         throw new Exception(`Sorry, you can't create a chat, just like that.`)
     }
 
+    async createChatRole() {
+        throw new Exception(`Sorry, you can't call 'createChatRole()', just like that.`)
+    }
+
+    async addUserToRole() {
+        throw new Exception(`Sorry, you can't call 'addUserToRole()', just like that.`)
+    }
+    async removeUserFromRole() {
+        throw new Exception(`Sorry, you can't call 'removeUserFromRole()', just like that.`)
+    }
+
     get events() {
         return undefined
     }

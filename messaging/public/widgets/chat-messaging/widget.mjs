@@ -12,6 +12,7 @@ import hcRpc from "/$/system/static/comm/rpc/aggregate-rpc.mjs";
 import { handle } from "/$/system/static/errors/error.mjs";
 import DelayedAction from "/$/system/static/html-hc/lib/util/delayed-action/action.mjs";
 import { Widget, hc } from "/$/system/static/html-hc/lib/widget/index.mjs";
+import { SlideContainer } from "/$/system/static/html-hc/widgets/slide-container/container.mjs";
 
 const load = Symbol()
 
@@ -22,7 +23,7 @@ const timePositions = Symbol()
 const setUnreadBadgeCount = Symbol()
 const onUnreadCountChange = Symbol()
 const drawUnreadCountBadge = Symbol()
-const lastVisibleMessageHTML = Symbol()
+const lastScrollTop = Symbol()
 
 
 export default class ChatMessaging extends Widget {
@@ -100,6 +101,10 @@ export default class ChatMessaging extends Widget {
 
         const updateTimePosition = new DelayedAction(() => {
 
+            if (!this.chat.recipients.includes(this.me.id)) {
+                return; // In some chats the user is a "spy", e.g when a customer service agent is reading a chat, before responding.
+            }
+
             return hcRpc.chat.messaging.updateUserTimePosition(
                 {
                     chat: this.chat.id,
@@ -123,11 +128,11 @@ export default class ChatMessaging extends Widget {
                      */
                     set: (msg) => {
                         const widget = new ChatMessage(msg);
-                        widget.seen = this.myTimePosition?.position.read > (msg.edited?.time || msg.time)
+                        widget.seen = this.myTimePosition?.position.read >= (msg.edited?.time || msg.time)
                         if (!widget.seen) {
                             widget.addEventListener('seen', () => {
                                 const msgTime = (msg.edited?.time || msg.time)
-                                if (msgTime > (this.myTimePosition.position.read || 0)) {
+                                if (msgTime > (this.myTimePosition?.position?.read || 0)) {
                                     this.myTimePosition.position.read = msgTime
                                     updateTimePosition()
                                     this.dispatchEvent(new CustomEvent('unread-count-change'))
@@ -180,22 +185,52 @@ export default class ChatMessaging extends Widget {
             if (this.unreadCount > 0) {
                 this[drawUnreadCountBadge]()
             } else {
-                if (this[lastVisibleMessageHTML]) {
-                    this.scrollToBottom(this[lastVisibleMessageHTML])
+                if (this[lastScrollTop]) {
+                    this.scrollToBottom(this[lastScrollTop])
                 } else {
                     this.scrollToBottom()
                 }
             }
-        }, 100, 2000))
+        }, 150, 200))
+
+        this.html.addEventListener('hc-connected-to-dom', () => {
+            this.html.classList.add('new-born')
+            setTimeout(() => this.html.classList.remove('new-born'), 1500)
+
+            function checkTransition(element) {
+
+                const transitions = []
+
+                function check(element) {
+                    const transition = window.getComputedStyle(element).transitionDuration
+                    if (transition != '0s') {
+                        transitions.push({
+                            element,
+                            value: window.getComputedStyle(element).getPropertyValue('transition')
+                        })
+                    }
+
+                }
+
+                while ((element = element.parentElement) != null) {
+                    check(element)
+                }
+
+                console.log(transitions)
+            }
+        })
 
         // Now, the logic of remembering the last scroll position
         this.html.$('.container >.messages').addEventListener('scroll', new DelayedAction(() => {
+            if (!this.visible) return;
             const visibleOnes = this.messageWidgets.filter(widget => {
                 const rect = widget.html.getBoundingClientRect();
                 return rect.top > (window.innerHeight / 4) && rect.bottom > (window.innerHeight / 4)
             })
 
-            this[lastVisibleMessageHTML] = visibleOnes[0]?.html
+            if (visibleOnes.length == 0) return;
+
+            this[lastScrollTop] = this.html.$(':scope >.container >.messages').scrollTop
         }, 250, 2000), { signal: this.destroySignal })
 
         Object.assign(this, arguments[0])
@@ -205,8 +240,48 @@ export default class ChatMessaging extends Widget {
         /** @type {Omit<telep.chat.messaging.TimePosition, "chat">[]} */
         this[timePositions] = [];
 
+        const watchParentLayout = async () => {
+            await this.waitTillDOMAttached();
+
+
+            const sliderParent = this.html.closest(['', ...SlideContainer.classList].join('.'))
+            const viewContainerParent = this.html.closest('.hc-ehealthi-device-frame-view-container')
+
+            if (viewContainerParent) {
+                const observer = new MutationObserver(() => {
+                    if (viewContainerParent.classList.contains('visible')) {
+                        this.html.classList.add('new-born')
+                        setTimeout(() => this.html.classList.remove('new-born'), 2000)
+                    }
+                });
+
+                observer.observe(viewContainerParent, { attributes: true })
+            }
+
+            if (!sliderParent) return;
+
+            const toggleVisibility = new DelayedAction(() => {
+                if (!sliderParent.contains(this.html)) return;
+                this.html.classList.toggle('pseudo-hide', sliderParent.classList.contains('is-sliding-to-pre'))
+            }, 50, 50)
+
+            const observer = new MutationObserver(() => {
+                toggleVisibility()
+                setTimeout(() => this.scrollToBottom(this[lastScrollTop]), 100)
+            })
+
+            observer.observe(sliderParent, { attributes: true })
+
+            const resizeObserver = new ResizeObserver(() => {
+                this.scrollToBottom(this[lastScrollTop])
+            })
+            resizeObserver.observe(this.html, { box: 'border-box' })
+
+        }
 
         this.waitTillDOMAttached().then(() => this.load())
+
+        watchParentLayout()
     }
     get myTimePosition() {
         return this[timePositions].find(x => x.member == this.me.id)
@@ -226,7 +301,7 @@ export default class ChatMessaging extends Widget {
         return document.visibilityState == 'visible' && this.html.isConnected && ((style) => {
             // To say that this view is visible
             return style.visibility == 'visible' // Must be visible
-                && new Number(style.opacity).valueOf() > 0.1 // Must be not be too transparent
+                && ((new Number(style.opacity).valueOf() > 0.1) || this.html.classList.contains('pseudo-hide') || this.html.classList.contains('new-born')) // Must be not be too transparent
                 && new Number(style.fontSize.split(/[^0-9.]/)[0]).valueOf() > 4 // Must have at least 4px font size
         })(window.getComputedStyle(this.html))
 
@@ -235,12 +310,26 @@ export default class ChatMessaging extends Widget {
     scrollToBottom = new DelayedAction(
         /**
          * 
-         * @param {HTMLElement} html If this argument is passed, then we would not scroll to the bottom. We'll stop at position
+         * @param {number} top If this argument is passed, then we would not scroll to the bottom. We'll stop at position
+         * @param {boolean} smooth
          */
-        (html) => {
-            if (!this.visible) return;
-            (html || this.messageWidgets.at(-1)?.html)?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' })
-        }, 100, 2000
+        async (top, smooth) => {
+            const slideParent = this.html.closest(['', ...SlideContainer.classList].join('.'))
+            if (['is-sliding-to-pre', 'is-sliding-to-secondary'].some(x => slideParent.classList.contains(x))) {
+                return setTimeout(() => this.scrollToBottom(top), 500)
+            }
+            const messagesView = this.html.$(':scope >.container >.messages');
+
+
+            const y = top || messagesView.scrollHeight
+
+            messagesView.scrollTo({
+                top: y,
+                behavior: (smooth ?? !top) ? 'smooth' : 'instant'
+            })
+
+
+        }, 10, 100
     )
 
     /**
@@ -336,7 +425,7 @@ export default class ChatMessaging extends Widget {
     }
 
     get unreadCount() {
-        return this.messages.filter(x => !x.isOwn && ((x.edited?.time || x.time) > (this.myTimePosition.position.read || 0))).length
+        return this.messages.filter(x => !x.isOwn && ((x.edited?.time || x.time) > (this.myTimePosition?.position.read || 0))).length
     }
 
     [onUnreadCountChange]() {

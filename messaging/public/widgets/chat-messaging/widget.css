@@ -25,17 +25,27 @@
     display: flex;
     flex-direction: column;
     row-gap: 1.5em;
-    transition: 0s 0s;
 }
 
-.hc-telep-chat-messaging.hc-widget-ready>.container>.messages {
-    transition: 0.25s 0.125s;
-}
+
 
 .hc-telep-chat-messaging>.container>.read-check-area {
     position: absolute;
     top: 1em;
     width: 100%;
     height: calc(100% - 2em);
-    /* border: 1px solid red; */
+}
+
+.hc-telep-chat-messaging {
+    transition: 0.75s opacity, 0.75s filter;
+}
+
+
+.hc-telep-chat-messaging:is(.pseudo-hide, .new-born),
+.hc-slide-container:is(.is-sliding-to-secondary, .is-sliding-to-pre) .hc-telep-chat-messaging:not(.pseudo-hide),
+.hc-ehealthi-device-frame-view-container:not(.visible) .hc-telep-chat-messaging {
+    opacity: 0.03;
+    filter: blur(0.75em);
+    transition: 0.5s opacity, 0.5s filter;
+
 }

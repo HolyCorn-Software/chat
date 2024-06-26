@@ -65,7 +65,6 @@ export default class ChatWidget extends Widget {
 
             clearTimeout(destroyTimeout)
             details.html.addEventListener('hc-disconnected-from-dom', () => {
-                console.log(`details removed from the DOM`)
                 destroyTimeout = setTimeout(() => details.destroy(), 15_000)
             }, { once: true, })
 

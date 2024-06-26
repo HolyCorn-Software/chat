@@ -7,26 +7,21 @@
 
 import muser_common from "muser_common"
 import shortUUID from "short-uuid"
+import nodeUtil from 'node:util'
 
 
 
-const collection = Symbol()
-
-function modernuser() {
-    return FacultyPlatform.get().connectionManager.overload.modernuser()
-}
+const collections = Symbol()
 
 
 export default class ChatManagement {
 
 
     /**
-     * 
-     * @param {telep.chat.management.ChatDataCollection} coln 
+     * @param {telep.chat.management.ChatManagementCollections} _collections
      */
-    constructor(coln) {
-        this[collection] = coln
-
+    constructor(_collections) {
+        this[collections] = _collections
         this.events = new EventTarget()
     }
 
@@ -37,10 +32,14 @@ export default class ChatManagement {
      */
     async createChat(init) {
         const { userid } = init;
+        console.log(`init.type `, init.type)
+        soulUtils.checkArgs(init, {
+            type: '"private"|"roled"|"group"',
+        }, 'init')
         delete init.userid
         const id = shortUUID.generate()
 
-        if (!(init.recipients?.length > 0)) {
+        if (!(init.recipients?.length > 0)) { // A roled chat requires just one user
             throw new Exception(`You need at least two (2) recipients to start a chat.`)
         }
 
@@ -50,10 +49,26 @@ export default class ChatManagement {
                 [...init.recipients, userid].map(x => [x, true])
             )
         );
-        await this[collection].insertOne(
+
+        if (init.role) {
+            soulUtils.checkArgs(init.role, 'string', 'init.role', undefined, ['definite'])
+
+            /** @type {telep.chat.management.Chat['role']} */
+            const fullRole = {
+                data: {
+                    name: init.role,
+                    label: (await this[collections].role.data.findOne({ name: init.role })).label,
+                },
+                member: undefined
+            }
+
+            init.role = fullRole
+        }
+
+        await this[collections].data.insertOne(
             {
                 id,
-                ...init,
+                ...(soulUtils.pickOnlyDefined(init, ['type', 'disabled', 'rules', 'role'])),
                 // Let's have a unique list of recipients, that includes the sender
                 recipients: recipients
             }
@@ -92,7 +107,7 @@ export default class ChatManagement {
             }
         )
 
-        await this[collection].updateOne({ id: data.id }, { $set: { ended: Date.now(), modified: Date.now() } })
+        await this[collections].data.updateOne({ id: data.id }, { $set: { ended: Date.now(), modified: Date.now() } })
 
         // And, when we're done, let other components know
         faculty.connectionManager.events.emit(`${faculty.descriptor.name}-chat-end`, { id: data.id })
@@ -138,7 +153,7 @@ export default class ChatManagement {
             return
         }
         // And now, let's activate, or deactivate the chat
-        await this[collection].updateOne({ id: data.chat }, { $set: { disabled: !!!data.state, modified: Date.now() } })
+        await this[collections].data.updateOne({ id: data.chat }, { $set: { disabled: !!!data.state, modified: Date.now() } })
 
         this.events.dispatchEvent(
             new CustomEvent(
@@ -162,18 +177,26 @@ export default class ChatManagement {
      * @returns {Promise<telep.chat.management.Chat>}
      */
     async getChatInfoSecure(data) {
-        const chatData = await this[collection].findOne({ id: data.id }, { projection: { _id: 0 } })
+        const chatData = await this[collections].data.findOne({ id: data.id }, { projection: { _id: 0 } })
         if (!chatData) {
             throw new Exception(`The chat ${data.id}, was not found!`)
         }
         if (data.userid) {
+
+            const whitelist = [...chatData.recipients]
+
+            if (chatData.type == 'roled' && await this.isMemberOfRole({ role: chatData.role.data.name, userid: data.userid })) {
+                // If this chat is a roled chat (e.g customer service chat), allow a user who is a member of that role to view
+                whitelist.push(data.userid)
+            }
+
             if (!await muser_common.whitelisted_permission_check(
                 {
                     userid: data.userid,
                     intent: { freedom: 'use' },
                     permissions: ['permissions.telep.chat.supervise'],
                     throwError: false,
-                    whitelist: chatData.recipients
+                    whitelist
                 }
             )) {
                 console.log(`chatData is `, chatData, `\nAnd userid is `, data.userid)
@@ -192,19 +215,99 @@ export default class ChatManagement {
      * @returns {Promise<telep.chat.management.Chat[]>}
      */
     async getUserChats({ userid, type }) {
-        return this[collection].find(
-            {
-                recipients: {
-                    $elemMatch: {
-                        $eq: userid
-                    }
+        const isTyped = (typeof type !== 'undefined') && (type != null)
+        /** @type {Parameters<this[collections]['data']['find']>['0']} */
+        const query = {
+            ...(isTyped ? { type } : { type: { $not: { $eq: 'roled' } } }),
+            $or: [
+                {
+                    recipients: {
+                        $elemMatch: {
+                            $eq: userid
+                        }
+                    },
                 },
-                ...(typeof type !== 'undefined' ? { type } : {})
-            },
+
+            ]
+        }
+
+        if (type == 'roled') {
+            // If we're dealing with roled chats, we don't only have to return the chats where the user is part.
+            // We also need chats that the user can be part of.
+            const userRoles = (await this[collections].role.members.find({ userid }).toArray()).map(x => x.role)
+            const rolePlayExclude = {
+                recipients: { $elemMatch: { $eq: userid } },
+                'role.data.name': { $in: userRoles }
+            }
+            query.$or.push({
+                'role.data.name': { $in: userRoles, },
+                'role.member': { $exists: false },
+
+            });
+            query.$or.forEach(x => {
+                // Exclude the roled chats, where the calling user is a part of, if the chat is that of a role he already plays
+                x.$nor = [rolePlayExclude]
+            })
+        }
+
+
+        const items = (await this[collections].data.find(
+            query,
             {
                 projection: { _id: 0 }
             }
-        ).toArray()
+        ).toArray());
+
+        const profiles = await (await faculty.connectionManager.overload.modernuser()).profile.getProfiles(items.map(x => x.recipients).flat(2))
+
+
+        return items.map(item => {
+            if (item.type == 'group') return item;
+            let otherUser = item.recipients.filter(x => x !== userid)[0]
+            return ChatManagement.getChatViewData0({ chat: item, userid, otherUser: profiles.find(x => x.id == otherUser) })
+        })
+    }
+
+    /**
+     * This method adds a user to a chat
+     * @param {object} param0 
+     * @param {string} param0.userid
+     * @param {string} param0.id
+     */
+    async addUserToChat({ userid, id }) {
+        if (!userid) {
+            throw new Exception(`Please, pass a string for 'userid'.`)
+        }
+
+        const chatData = await this.getChatInfoSecure({ id, userid });
+        if (chatData.recipients.includes(userid)) return;
+
+        if ((chatData.recipients.length + 1) > (chatData.maxRecipients ?? Infinity)) {
+            throw new Exception(`The maximum number of members of this chat, has been reached.`)
+        }
+
+        let isRoledUser = chatData.type == 'roled' && !chatData.role.member && (await this.isMemberOfRole({ role: chatData.role.data.name, userid }))
+
+
+        await this[collections].data.updateOne({ id }, { $push: { recipients: userid }, $set: { 'role.member': isRoledUser ? userid : undefined } });
+    }
+
+    /**
+     * This method is called when a user wants to exit a chat
+     * @param {object} param0 
+     * @param {string} param0.userid
+     * @param {string} param0.id
+     */
+    async exit({ userid, id }) {
+
+        const chat = await this.getChatInfoSecure({ userid, id })
+
+        if (chat.type == 'private') throw new Exception(`You can't exit a private chat.`); // No one can exit a private chat
+
+        if (chat.type == 'roled' && chat.role?.member != userid) {
+            throw new Exception(`Only the other person can exit this chat.`); // In a roled chat, only the role player can exit
+        }
+        await this[collections].data.updateOne({ id }, { $unset: { [chat.role?.member == userid ? 'role.member' : undefined]: true }, $pull: { recipients: userid } })
     }
 
 
@@ -266,23 +369,114 @@ export default class ChatManagement {
      * @param {object} data 
      * @param {string} data.userid
      * @param {string} data.id
-     * @returns {Promise<{label: string, icon: string}>}
      */
     async getChatViewData(data) {
         const chat = await this.getChatInfoSecure(data)
-        let otherUser;
+
+        let otherUser = await (async () => {
+            if ((chat.type == 'roled' && data.userid != chat.role.member) || !data.userid) {
+                return {}
+            }
+            return await (await faculty.connectionManager.overload.modernuser()).profile.get_profile({
+                id: chat.recipients.filter(x => x !== data.userid)[0]
+            })
+
+        })();
+
+
+
+        return ChatManagement.getChatViewData0({ chat, userid: data.userid, otherUser })
+    }
+
+    static getChatViewData0({ chat, userid, otherUser }) {
+
+
+        /** This tells us if the calling user is the 'client' of the roled chat, and not the agent. */
+        const isRoleClient = chat.type == 'roled' && chat.recipients.includes(userid)
+
         return {
+            ...chat,
             // Use the name of the group chat if possible, or...
-            label: chat.type === 'group' ? chat.label : (
+            label: chat.type == 'group' ? chat.label : (
                 // Get the user name of the other user belonging to the chat
-                otherUser = await (await faculty.connectionManager.overload.modernuser())
-                    .profile.get_profile({
-                        id: chat.recipients.filter(x => x !== data.userid)[0]
-                    })
-            ).label,
-            icon: chat.type === 'group' ? chat.icon : otherUser.icon,
-            ...chat
+                (() => {
+                    if (isRoleClient) {
+                        return chat.role.data.label
+                    }
+                    return otherUser?.label
+                })()
+            ),
+            icon: (chat.type === 'group') || isRoleClient ? chat.icon : otherUser?.icon,
         }
+    }
+
+    /**
+     * This method creates a new chat role, so that chats can be started with the given role
+     * @param {object} param0 
+     * @param {telep.chat.management.ChatRole['name']} param0.name
+     * @param {telep.chat.management.ChatRole['label']} param0.label
+     */
+    async createChatRole({ userid, name, label }) {
+
+        // Normally, this method should not be called over the public web, but if it happens, in the worst case scenario, let's check for the highest
+        // permissions, as a security measure.
+        await muser_common.whitelisted_permission_check({ userid, permissions: ['permissions.modernuser.superuser'] })
+
+        await this[collections].role.data.updateOne({ name }, { $set: { label }, $setOnInsert: { created: Date.now() } }, { upsert: true })
+
+    }
+
+    /**
+     * This method adds a user to a role
+     * @param {object} param0 
+     * @param {string} param0.member
+     * @param {telep.chat.management.ChatRole['name']} param0.role
+     */
+    async addUserToRole({ userid, member, role }) {
+        // Normally, this method should not be called over the public web, but if it happens, in the worst case scenario, let's check for the highest
+        // permissions, as a security measure.
+        await muser_common.whitelisted_permission_check({ userid, permissions: ['permissions.modernuser.superuser'] })
+
+        await this[collections].role.members.updateOne({ userid: member, role }, { $set: { role, userid: member } }, { upsert: true })
+    }
+
+    /**
+     * This method removes a user from a role
+     * @param {object} param0 
+     * @param {string} param0.member
+     * @param {telep.chat.management.ChatRole['name']} param0.role
+     */
+    async removeUserFromRole({ userid, member, role }) {
+        // Normally, this method should not be called over the public web, but if it happens, in the worst case scenario, let's check for the highest
+        // permissions, as a security measure.
+        await muser_common.whitelisted_permission_check({ userid, permissions: ['permissions.modernuser.superuser'] })
+
+        await this[collections].role.members.deleteOne({ userid: member, role })
+    }
+
+    /**
+     * This method gets the users that make up a chat role
+     * @param {object} param0 
+     * @param {telep.chat.management.ChatRole['name']} param0.role
+     */
+    async * getRoleMembers({ role }) {
+        for await (const item of await this[collections].role.members.find({ role })) {
+            delete item._id
+            delete item.role
+            item.$profile = await (await FacultyPlatform.get().connectionManager.overload.modernuser()).profile.get_profile({ id: item.userid })
+            delete item.$profile.meta
+            yield item
+        }
+    }
+
+    /**
+     * This method checks to see if the given user is a member of a role
+     * @param {object} param0 
+     * @param {telep.chat.management.ChatRole['name']} param0.role
+     * @param {string} param0.userid
+     */
+    async isMemberOfRole({ role, userid }) {
+        return (await this[collections].role.members.countDocuments({ role, userid })) > 0
     }
 
 

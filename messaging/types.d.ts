@@ -122,8 +122,14 @@ global {
         }
 
 
+    }
 
-
+    namespace telep.chat.events {
+        interface AllEvents {
+            'telep-chat-new-roled-chat': {
+                id: string
+            }
+        }
     }
 
 }

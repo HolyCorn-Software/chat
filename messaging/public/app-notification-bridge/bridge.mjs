@@ -16,6 +16,21 @@ import DelayedAction from "/$/system/static/html-hc/lib/util/delayed-action/acti
 if (globalThis.AppFrameAPI) {
 
 
+
+    /**
+     * This method determines if there's NO chat widget opened, and currently visible to the user, for the given chat id
+     * @param {string} id
+     */
+    function noChatViewFor(id) {
+
+        /** @type {ChatMessaging[]} */
+        const chatWidgets = [...document.body.querySelectorAll(['', ...ChatMessaging.classList].join('.'))].map(x => x.widgetObject)
+
+        return document.visibilityState == 'visible' && (
+            chatWidgets.findIndex(x => (x.chat.id == id) && x.visible) != -1
+        );
+    }
+
     ChatEventClient.create().then(client => {
 
         /**
@@ -32,12 +47,8 @@ if (globalThis.AppFrameAPI) {
 
                 ((tasks[id] ||= {}).action ||= new DelayedAction(async () => {
                     const main = async () => {
-                        /** @type {ChatMessaging[]} */
-                        const chatWidgets = [...document.body.querySelectorAll(['', ...ChatMessaging.classList].join('.'))].map(x => x.widgetObject)
                         if (
-                            document.visibilityState == 'visible' && (
-                                chatWidgets.findIndex(x => (x.chat.id == id) && x.visible) != -1
-                            )
+                            noChatViewFor(id)
                         ) {
                             return console.log(`User is seeing the messages `)// Then the user is currently facing a UI of this chat. No need to send notifications
                         }
@@ -77,6 +88,24 @@ if (globalThis.AppFrameAPI) {
                 }, 2000, 10_000))()
             }
 
+
+
+        })
+
+        client.events.addEventListener('telep-chat-new-roled-chat', async ({ detail }) => {
+            if (noChatViewFor(detail.id)) {
+                return;
+            }
+            const chatView = await hcRpc.chat.management.getChatViewData({ id: detail.id });
+
+            (await AppFrameAPI.notification()).notify(
+                {
+                    title: `Customer Service`,
+                    content: `${chatView.label} just contact customer service, and there's no one (yet) to reply.`,
+                    groupId: 'customerService',
+                    id: detail.id,
+                }
+            )
 
         })
 

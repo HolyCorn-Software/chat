@@ -13,7 +13,14 @@ import { CollectionProxy } from "../../system/database/collection-proxy.js";
  */
 const collections = new CollectionProxy(
     {
-        chats: 'chats',
+        chats: {
+            data: 'chats',
+            role: {
+                data: 'roles',
+                members: 'roles.members'
+            },
+
+        },
         messaging: {
             messages: 'messages',
             timePositions: 'userTimePositions'

@@ -18,7 +18,7 @@ import ChatInternalMethods from "./remote/internal.mjs"
 global {
     namespace telep.chat.management {
         interface Collections {
-            chats: telep.chat.management.ChatDataCollection
+            chats: telep.chat.management.ChatManagementCollections
             messaging: telep.chat.messaging.Collections
         }
         interface ClientMethods {

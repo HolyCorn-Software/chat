@@ -13,6 +13,7 @@ global {
 
         type ChatInit = Pick<Chat, "type" | "recipients" | "rules" | "disabled"> & {
             userid: string
+            role: keyof ChatRolesEnum
         }
 
         interface Chat {
@@ -20,8 +21,15 @@ global {
             id: string
             /** The type of chat we're dealing with. A group, or private chat? */
             type: ChatType
+            /** If {@link type} is `roled`, this field contains the role the user is chatting with, as well as information about the role */
+            role?: {
+                data: ChatRole
+                member: string
+            }
             /** The individuals belonging to this chat */
             recipients: string[]
+            /** The maximum number of participants that can who can be in this chat. */
+            maxRecipients?: number
             /**
              * This field contains information of the creator, and the time, this chat
              * was created
@@ -54,7 +62,7 @@ global {
 
         }
 
-        type ChatType = "private" | "group"
+        type ChatType = "private" | "group" | "roled"
 
         type RuleWhitelist = (string[] | ["any"])
 
@@ -70,7 +78,47 @@ global {
                 [K in keyof T]: RuleCheck<T[K]>
             }
 
-        type ChatDataCollection = Collection<Chat>
+        type ChatDataCollections = Collection<Chat>
+
+
+
+
+        interface ChatRole {
+            label: string
+            name: keyof ChatRolesEnum
+        }
+
+        interface ChatRoleRecord extends ChatRole {
+            created: number
+        }
+
+        type ChatRolesCollection = Collection<ChatRoleRecord>
+
+
+        interface RoleMember {
+            role: ChatRole['name']
+            userid: string
+        }
+
+        interface RoleMemberRecord extends RoleMember {
+            created: number
+        }
+
+
+        type RoleMembersCollection = Collection<RoleMemberRecord>
+
+        interface ChatManagementCollections {
+            data: ChatDataCollections
+            role: {
+                data: ChatRolesCollection
+                members: RoleMembersCollection
+            }
+        }
+
+        interface ChatRolesEnum {
+
+            'exampleRole': true
+        }
 
     }
 

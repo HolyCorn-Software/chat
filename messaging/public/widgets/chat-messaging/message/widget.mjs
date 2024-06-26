@@ -4,6 +4,7 @@
  * This widget represents a single message within the chat
  */
 
+import ChatMessaging from "../widget.mjs";
 import hcRpc from "/$/system/static/comm/rpc/aggregate-rpc.mjs";
 import { handle } from "/$/system/static/errors/error.mjs";
 import { Widget, hc } from "/$/system/static/html-hc/lib/widget/index.mjs";
@@ -54,23 +55,28 @@ export default class ChatMessage extends Widget {
             `
         });
 
-
-        if (message?.type === 'text') {
-            this.html.$('.container >.main >.content >.content-main').innerHTML = message.data.text
-        }
-        /**
-         * 
-         * @param {Date} date 
-         */
-        const timeString = (date) => {
-            return `${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`
-        }
-        this.html.$('.container >.main >.content >.bottom >.time').innerHTML = timeString(new Date(message?.time))
-        this.data = message
-
         /** @type {boolean} */ this.isOwn
         this.htmlProperty(undefined, 'isOwn', 'class', undefined, 'rtl')
-        this.isOwn = message.isOwn
+
+        const draw = () => {
+
+
+            if (message?.type === 'text') {
+                this.html.$('.container >.main >.content >.content-main').innerHTML = message.data.text
+            }
+            /**
+             * 
+             * @param {Date} date 
+             */
+            const timeString = (date) => {
+                return `${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`
+            }
+            this.html.$('.container >.main >.content >.bottom >.time').innerHTML = timeString(new Date(message?.time))
+
+            this.isOwn = message.isOwn
+        }
+
+        this.data = message
 
         const extender = new EventBasedExtender(
             {
@@ -80,9 +86,12 @@ export default class ChatMessage extends Widget {
         )
 
         this.blockWithAction(async () => {
+            draw()
+
             // Wait till the message is visible, and see if it is one that requires sending
             if (this.data.isNew) {
-                this.send().catch((e) => {
+                this.data.sender = this.parent.me.id
+                this.send().then(draw).catch((e) => {
                     handle(e)
                 })
             }
@@ -113,6 +122,7 @@ export default class ChatMessage extends Widget {
                 /** @type {(keyof HTMLElementEventMap)[]} */
                 const events = ['mouseenter', 'mousedown', 'click', 'touchend']
                 const abortControl = new AbortController()
+
                 events.forEach(event => {
                     this.html.addEventListener(event, () => {
                         this.dispatchEvent(new CustomEvent('seen'));
@@ -161,12 +171,16 @@ export default class ChatMessage extends Widget {
                 async () => {
                     const id = await hcRpc.chat.messaging.sendMessage(
                         {
-                            chat: this.data.chat,
+                            chat: this.data.chat || this.parent.chat.id,
                             data: this.data.data,
                             type: this.data.type
                         }
                     )
                     this.data.id = id
+                    this.data.sender = this.parent.me.id
+                    this.data.isOwn = this.isOwn = true
+                    this.data.time = Date.now()
+                    this.data.chat ||= this.parent.chat.id
                     delete this.data.isNew
                 }
             )
@@ -175,6 +189,13 @@ export default class ChatMessage extends Widget {
             this.failed = true
             throw e
         }
+    }
+
+    /**
+     * @returns {ChatMessaging}
+     */
+    get parent() {
+        return this.html.closest(['', ...ChatMessaging.classList].join('.'))?.widgetObject
     }
 
 

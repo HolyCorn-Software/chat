@@ -1,8 +1,9 @@
 .
 
-Optimized for mobile view.
+Added roled chats functionality, which could be used for features like customer service.
 
-Fixed minor bug with notification handling.
+Fixed minor bugs.
 
-Fixed minor UI bug.
+Improved chat UX.
 
+Added chat exiting capabilities.

@@ -194,6 +194,7 @@ export default class ChatMessaging extends Widget {
         }, 150, 200))
 
         this.html.addEventListener('hc-connected-to-dom', () => {
+            console.log(`Just connected to DOM!!`)
             this.html.classList.add('new-born')
             setTimeout(() => this.html.classList.remove('new-born'), 1500)
 
@@ -250,8 +251,10 @@ export default class ChatMessaging extends Widget {
             if (viewContainerParent) {
                 const observer = new MutationObserver(() => {
                     if (viewContainerParent.classList.contains('visible')) {
-                        this.html.classList.add('new-born')
-                        setTimeout(() => this.html.classList.remove('new-born'), 2000)
+                        if (!this.visible) {
+                            this.html.classList.add('new-born')
+                            setTimeout(() => this.html.classList.remove('new-born'), 2000)
+                        }
                     }
                 });
 

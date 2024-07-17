@@ -150,14 +150,16 @@ export default class CallHandle {
      * @param {object} param0 
      * @param {string} param0.member
      * @param {string} param0.data
+     * @param {boolean} param0.forced
      */
-    async updateSDPData({ member, data }) {
+    async updateSDPData({ member, data, forced }) {
         try {
             const results = await hcRpc.chat.calling.updateSDPData({
                 call: this.data.id,
                 data: {
                     [member]: data
-                }
+                },
+                forced
             });
 
             this[internal].sdps[member] ||= {}

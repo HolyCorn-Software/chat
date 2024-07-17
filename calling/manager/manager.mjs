@@ -316,9 +316,10 @@ export default class CallManager {
      * @param {string} param0.id
      * @param {string} param0.member
      * @param {telep.chat.calling.SDPUpdateData} param0.data
+     * @param {boolean} param0.forced If true, data would be updated, regardless of the connection state
      * @returns {Promise<telep.chat.calling.SDPUpdateResults>}
      */
-    async updateSDPData({ id, member, data }) {
+    async updateSDPData({ id, member, data, forced }) {
         if (!data) return
         await this.validateAccess({ id, userid: member })
         await this.connect({ member, id })
@@ -348,7 +349,7 @@ export default class CallManager {
             }
         }
 
-        this.propagateSDPUpdates({ id, members: membersToBeInformed })
+        this.propagateSDPUpdates({ id, members: membersToBeInformed, forced })
 
 
         return results
@@ -377,8 +378,9 @@ export default class CallManager {
      * @param {object} param0 
      * @param {string} param0.id
      * @param {Set<string>} param0.members
+     * @param {boolean} param0.forced If true, the SDP would be updated, even if the connection is stable
      */
-    async propagateSDPUpdates({ id, members }) {
+    async propagateSDPUpdates({ id, members, forced }) {
         for (const clientId of [...members]) {
             // For each client, we build a local SDP table, which he can understand, then send to him
             /** @type {telep.chat.calling.ui.LocalSDPTable} */
@@ -402,6 +404,7 @@ export default class CallManager {
             this[controllers].events.clients([clientId], { aggregation: { timeout: 250, sameData: false }, expectedClientLen: 1, precallWait: 0, noError: true }).calling.updateSDPs(
                 {
                     data: localSDPTable,
+                    forced: forced,
                     id
                 }
             ).catch(() => undefined)

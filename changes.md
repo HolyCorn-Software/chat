@@ -1,3 +1,3 @@
 .
 
-Fixed minor UI bug.
+Fixed call media source switch bug.

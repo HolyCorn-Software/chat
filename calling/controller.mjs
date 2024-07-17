@@ -106,9 +106,10 @@ export default class ChatCallingController {
      * @param {string} param0.userid
      * @param {string} param0.call
      * @param {telep.chat.calling.SDPUpdateData} param0.data 
+     * @param {object} param0.forced
      */
-    async updateSDPData({ userid, call, data }) {
-        return await this[manager].updateSDPData({ id: call, member: userid, data })
+    async updateSDPData({ userid, call, data, forced }) {
+        return await this[manager].updateSDPData({ id: call, member: userid, data, forced })
     }
 
     /**

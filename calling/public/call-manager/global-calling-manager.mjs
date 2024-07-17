@@ -127,12 +127,12 @@ export default class GlobalCallingManager {
          * @param {telep.chat.calling.ui.LocalSDPTable} param0.data
          * 
          */
-        async updateSDPs({ id, data }) {
+        async updateSDPs({ id, data, forced }) {
             const handle = await GlobalCallingManager.get().getHandle({ id })
             for (const memberId in data) {
                 handle[internal].sdps[memberId] = data[memberId]
             }
-            handle.events.dispatchEvent(new CustomEvent('sdp-change',))
+            handle.events.dispatchEvent(new CustomEvent('sdp-change', { detail: { forced } }))
         },
 
         /**

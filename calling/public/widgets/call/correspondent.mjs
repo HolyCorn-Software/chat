@@ -158,21 +158,38 @@ export default class CallCorrespondent extends Widget {
      */
     set localStream(stream) {
 
-        const removeOld = () => this[localStreamRefs]?.forEach(ref => {
-            try { this.connection.removeTrack(ref) } catch { }
-            delete this[localStream]
-        });
+        const removeOld = () => {
+
+            console.log(`Removing old media stream.`)
+
+            this[localStreamRefs]?.forEach(ref => {
+                try { this.connection.removeTrack(ref) } catch { }
+            });
+
+            if (this[localStreamRefs]?.length > 0) {
+                console.log(`Restarting ICE`)
+                delete this[localStream]
+                delete this[localStreamRefs];
+                this.connection.close()
+                this.setupStreaming(true);
+            }
+
+
+        }
 
         if (stream != this[localStream]) {
             removeOld()
         }
 
-        this[localStreamRefs] = stream.getTracks().map(track => (this.connection.addTrack(track, stream)))
+        if (this.connection.connectionState != 'closed' && this.connection.connectionState != 'failed') {
+            this[localStreamRefs] = stream.getTracks().map(track => (this.connection.addTrack(track, stream)))
+        }
         stream.addEventListener('addtrack', (event) => {
-            console.log(`New track in the just set stream`)
-            this.connection.addTrack(event.track, stream)
+            if (this.connection.connectionState != 'closed' && this.connection.connectionState != 'failed') {
+                console.log(`New track in the just set stream`)
+                this[localStreamRefs].push(this.connection.addTrack(event.track, stream))
+            }
         })
-
         this[localStream] = stream
     }
     get localStream() {
@@ -204,7 +221,7 @@ export default class CallCorrespondent extends Widget {
 
 
 
-        const setupStreaming = async () => {
+        const setupStreaming = this.setupStreaming = async (forced) => {
 
             const aborter = new AbortController()
 
@@ -285,7 +302,9 @@ export default class CallCorrespondent extends Widget {
             }, { signal: aborter.signal })
 
             this.parent.addEventListener('localstream-destroyed', () => {
-                this[localStreamRefs].forEach((ref) => connection.removeTrack(ref))
+                if (connection.connectionState != 'closed') {
+                    this[localStreamRefs].forEach((ref) => connection.removeTrack(ref))
+                }
             }, { signal: aborter.signal })
 
 
@@ -300,19 +319,24 @@ export default class CallCorrespondent extends Widget {
 
 
 
-            const createOffer = async () => {
-                if (connection.connectionState == 'connecting') {
+            const createOffer = this.createOffer = async () => {
+                if ((connection.connectionState == 'connecting') && !forced) {
                     return;
                 }
                 const offer = await connection.createOffer()
                 await connection.setLocalDescription(offer)
+                if ((connection.connectionState == 'connected' && connection.signalingState == 'stable') && force) {
+                    connection.restartIce()
+                }
                 await handle.updateSDPData(
                     {
                         member: this.correspondent.profile.id,
-                        data: offer.sdp
+                        data: offer.sdp,
+                        forced: forced
                     }
                 );
                 lastValues.offer = offer.sdp
+                forced = false
                 // console.log(`Just created a new offer`)
             }
 
@@ -396,9 +420,16 @@ export default class CallCorrespondent extends Widget {
 
 
             let createAnswerPromise;
-            handle.events.addEventListener('sdp-change', new DelayedAction(async () => {
+            handle.events.addEventListener('sdp-change', new DelayedAction(async ({ detail: { forced } }) => {
 
-                if (connection.connectionState == 'connected' || connection.connectionState == 'failed' || connection.signalingState == 'closed') {
+                if ((connection.connectionState == 'connected' || connection.connectionState == 'failed' || connection.signalingState == 'closed') && !forced) {
+                    return;
+                }
+
+                if (forced) {
+                    // console.log(`A forced change!`)
+                    this.connection.close()
+                    this.setupStreaming();
                     return;
                 }
 
@@ -456,10 +487,15 @@ export default class CallCorrespondent extends Widget {
                     }
 
                     console.log(`Connection failed. Taking everything from the start... call state is ${connection.connectionState}`)
-                    aborter.abort()
+
                     setTimeout(() => {
                         setupStreaming()
                     }, 1000)
+
+                    if (!aborter.signal.aborted) {
+                        aborter.abort()
+                    }
+
                     return
                 }
 

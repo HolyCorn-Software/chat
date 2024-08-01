@@ -1,3 +1,3 @@
 .
 
-Fixed call media source switch bug.
+Improved chat widget UI.

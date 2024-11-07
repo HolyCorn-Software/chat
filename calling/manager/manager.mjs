@@ -37,7 +37,7 @@ export default class CallManager {
 
                     this[controllers].events.clients(
                         [
-                            data.ids[0],
+                            cl_id,
                         ],
                         {
                             retries: 5,

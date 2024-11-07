@@ -70,6 +70,17 @@ export default class CallHandle {
      * This method can be called to make the ringing UI display locally
      */
     localRing() {
+
+        if ('chatCallRingOverride' in window) {
+            try {
+                window.chatCallRingOverride({ id: this.data.id });
+                return;
+            } catch (e) {
+                hcRpc.system.error.report(`Could not ring using override method: ${e}`);
+            }
+        }
+
+
         if (this[ringer]) return
 
         this[ringer] = new CallRingerUI(this.data.id);
@@ -118,7 +129,10 @@ export default class CallHandle {
      * This method releases the call handle, and all data associated with id
      */
     destroy() {
-        this[aborter].abort()
+        try {
+            this[aborter].abort()
+        } catch (e) { }
+        this.events.dispatchEvent(new CustomEvent('end'))
     }
 
 

@@ -176,7 +176,9 @@ export default class CallManager {
             // We end the call, either when everyone is disconnected, or the only viable members of the call is one person
             console.log(`Ending call ${id}, because ${realMembers.length == 1 ? "Only one person is left" : "Everyone disconnected"}`)
             if (connected.length > 0) {
-                this[controllers].events.clients(connected, { aggregation: { timeout: 1000 }, expectedClientLen: realMembers.length, noError: true }).calling.end({ id }).catch(() => undefined)
+                this[controllers].events.clients(connected, { aggregation: { timeout: 1000 }, expectedClientLen: realMembers.length, noError: true }).calling.end({ id }).catch((e) => {
+                    console.log(`Ending the call failed `, e)
+                })
             }
             delete this[stats][id]
         }
@@ -199,6 +201,18 @@ export default class CallManager {
         // If there's no fixed list of people to ring, let's ring all invited members who haven't
         // acknowledged the call yet
         ids ||= call_data.members.invited.filter(inv => !call_data.members.acknowledged.some(ack => ack === inv))
+
+        // First get to the call plugins, and ask them to ring the users' lines
+
+        /** @type {import("system/lib/libFaculty/plugin/list.mjs").default<ChatPluginModel>} */
+        const callPlugins = FacultyPlatform.get().pluginManager.loaded;
+
+        Object.values(callPlugins.$all).map((item) => {
+            item.instance.ringNotify({
+                call: call_data,
+                ids: ids,
+            });
+        });
 
         this[controllers].events.clients(ids, {
             retries: 5,
@@ -437,7 +451,9 @@ export default class CallManager {
             id,
             members: this[stats][id].members
         }).catch(e => {
-            console.warn(`Could not update list of members, on remote targets\n`, e)
+            if (!error.ignore) {
+                console.warn(`Could not update list of members, on remote targets\n`, e)
+            }
         });
 
     }

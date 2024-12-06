@@ -49,9 +49,11 @@ export default class CallHandle {
             sdps: {}
         }
 
-        this[aborter].signal.addEventListener('abort', () => {
+        this.destroySignal.addEventListener('abort', () => {
             this.events.dispatchEvent(new CustomEvent('end'))
         }, { once: true })
+
+        console.log("Call data ", data)
 
     }
 
@@ -73,7 +75,7 @@ export default class CallHandle {
 
         if ('chatCallRingOverride' in window) {
             try {
-                window.chatCallRingOverride({ id: this.data.id });
+                window.chatCallRingOverride(this.data);
                 return;
             } catch (e) {
                 hcRpc.system.error.report(`Could not ring using override method: ${e}`);
@@ -87,7 +89,7 @@ export default class CallHandle {
 
         this[ringer].destroySignal.addEventListener('abort', () => { this[ringer] = true }, { once: true })
 
-        this[aborter].signal.addEventListener('abort', () => {
+        this.destroySignal.addEventListener('abort', () => {
             this[ringer]?.dismiss?.(0)
         })
 
@@ -120,19 +122,28 @@ export default class CallHandle {
      * This method signals that the user has accepted to be part of the call
      */
     async connect() {
-        await hcRpc.chat.calling.connect({
-            id: this.data.id,
-        })
+        try {
+            await hcRpc.chat.calling.connect({
+                id: this.data.id,
+            })
+        } catch (e) {
+            if (/not.*found/.test(`${e}`)) {
+                this.exit()
+            }
+
+            throw e
+        }
     }
 
     /**
      * This method releases the call handle, and all data associated with id
      */
     destroy() {
+        console.log(`Destroying handle for call ${this.data.id}`)
+        this.events.dispatchEvent(new CustomEvent('end'))
         try {
             this[aborter].abort()
         } catch (e) { }
-        this.events.dispatchEvent(new CustomEvent('end'))
     }
 
 

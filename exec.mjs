@@ -14,11 +14,15 @@ import ChatPublicMethods from "./remote/public.mjs"
 
 export default async function init() {
 
+    await import("./plugin/model.mjs");
+
     const faculty = FacultyPlatform.get()
 
     const controller = new ChatController(collections)
     faculty.remote.internal = new ChatInternalMethods(controller)
     faculty.remote.public = new ChatPublicMethods(controller)
+
+    global.chatController = controller;
 
 
     console.log(`${faculty.descriptor.label.yellow.bold} is running`)

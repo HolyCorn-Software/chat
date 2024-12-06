@@ -44,17 +44,26 @@ export default class GlobalCallingManager {
      * @param {string} param0.id
      */
     async getHandle({ id }) {
-        return this[handles][id] ||= await (
-            async () => {
-                const handle = new CallHandle({ data: await hcRpc.chat.calling.getCallData({ id }) })
-                handle.destroySignal.addEventListener('abort', () => {
-                    if (this[handles][id] == handle) {
-                        delete this[handles][id]
-                    }
-                }, { once: true })
-                return handle;
-            }
-        )()
+
+        const newHandle = async () => {
+            return await (
+                async () => {
+                    const handle = new CallHandle({ data: await hcRpc.chat.calling.getCallData({ id }) });
+                    handle.destroySignal.addEventListener('abort', async () => {
+                        if ((await this[handles][id]) == handle) {
+                            delete this[handles][id];
+                        }
+                    }, { once: true });
+                    return handle;
+                }
+            )();
+        }
+
+        try {
+            return await (this[handles][id] ||= newHandle())
+        } catch (e) {
+            return await (this[handles][id] = newHandle())
+        }
     }
 
     /**
@@ -83,7 +92,7 @@ export default class GlobalCallingManager {
 
             const handle = await mgr.getHandle({ id })
 
-            const knownMembers = mgr[handles][id].members;
+            const knownMembers = (await mgr[handles][id]).members;
 
             let shouldChange;
             for (const field of fields) {
@@ -177,8 +186,11 @@ export default class GlobalCallingManager {
         const list = await hcRpc.chat.calling.getMyOngoingCalls()
 
         for (const id in this[handles]) {
-            if (list.findIndex(x => x == this[handles][id].data.id) == -1) {
-                this[handles][id].destroy()
+            const handle = await this[handles][id]
+            if (list.findIndex(x => x == handle.data.id) == -1) {
+                try {
+                    handle.destroy()
+                } catch { }
             }
         }
     }

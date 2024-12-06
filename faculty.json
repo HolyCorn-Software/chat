@@ -21,5 +21,17 @@
             "${fPath}/messaging/static/": "./messaging/public/",
             "${fPath}/calling/static/": "./calling/public/"
         }
+    },
+    "plugin": {
+        "plugins": {
+            "calling": {
+                "model": "ChatPluginModel",
+                "test": {
+                    "module": {
+                        "ringNotify": "function"
+                    }
+                }
+            }
+        }
     }
 }

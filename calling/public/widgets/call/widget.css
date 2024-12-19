@@ -34,6 +34,8 @@
     flex-wrap: wrap;
     overflow-y: auto;
     max-height: calc(80vh - 10em);
+    position: relative;
+    max-width: calc(100vw - 1em);
 }
 
 .hc-telep-chat-call-widget>.container>.top>.correspondents:empty::before {

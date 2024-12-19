@@ -302,6 +302,9 @@ export default class CallWidget extends Widget {
         const me = await hcRpc.modernuser.authentication.whoami()
         const onCorrespondentChange = () => {
             this.correspondents = [...new Set([me.id, ...this[callHandle].members.acknowledged].filter(x => !new Set(this[callHandle].members.rejected).has(x)))].map(ack => ({ profile: this[callHandle].profiles.find(usr => usr.id == ack) }))
+            this.correspondentWidgets.forEach((x, i) => {
+                x.html.classList.toggle('main', i == 0)
+            })
             refreshCounting()
             this.correspondentWidgets.filter(x => x.correspondent.profile.id != me.id).forEach(
                 x => x.addEventListener('connectionStatusChange', refreshCounting)
